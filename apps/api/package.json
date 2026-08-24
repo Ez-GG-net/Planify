@@ -1,0 +1,23 @@
+{
+  "name": "@planify/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.4",
+    "@planify/schemas": "workspace:*",
+    "@planify/types": "workspace:*",
+    "hono": "^4.9.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.20.3",
+    "typescript": "^5"
+  }
+}

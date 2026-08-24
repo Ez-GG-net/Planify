@@ -1,46 +1,22 @@
 {
-  "name": "planify-test",
+  "name": "planify",
   "version": "0.0.1",
-  "type": "module",
   "private": true,
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
+    "dev": "concurrently -n web,api -c blue,green \"pnpm --filter @planify/web dev\" \"pnpm --filter @planify/api dev\"",
+    "dev:web": "pnpm --filter @planify/web dev",
+    "dev:api": "pnpm --filter @planify/api dev",
+    "build": "pnpm --filter @planify/web build",
+    "start": "pnpm --filter @planify/web start",
+    "lint": "pnpm --filter @planify/web lint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@base-ui/react": "^1.6.0",
-    "@tailwindcss/typography": "^0.5.20",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "date-fns": "^4.4.0",
-    "dexie": "^4.4.5",
-    "lucide-react": "^1.26.0",
-    "next": "16.2.6",
-    "next-themes": "^0.4.6",
-    "react": "19.2.4",
-    "react-day-picker": "^10.0.1",
-    "react-dom": "19.2.4",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
-    "shadcn": "^4.14.1",
-    "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0",
-    "zod": "^4.4.3"
+    "typecheck": "tsc -p packages/schemas --noEmit && tsc -p packages/types --noEmit && tsc -p apps/api --noEmit && tsc -p apps/web --noEmit"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "concurrently": "^9.1.2",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "tailwindcss": "^4",
     "typescript": "^5"
   }
 }
