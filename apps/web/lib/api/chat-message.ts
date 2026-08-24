@@ -3,9 +3,9 @@ import {
   AIChatUserMessage,
   AIChatUserMessageContext,
   AIChatMessage,
+  generateRandomIDv1,
 } from "@planify/types"
 import type { AIChatStreamCallbacks } from "@/types"
-import { generateRandomIDv1 } from "@/lib/create-id"
 import { request } from "@/lib/api/client"
 import { AIChatUserMessageContextSchema, AIChatUserMessageSchema } from "@planify/schemas"
 import { AIChatStreamCallbacksSchema } from "@/schemas"

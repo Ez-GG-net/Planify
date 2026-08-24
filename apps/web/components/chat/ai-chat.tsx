@@ -26,7 +26,7 @@ import type {
   AIChatUserMessage,
   AIChatUserMessageContext,
 } from "@planify/types"
-import { generateRandomIDv1 } from "@/lib/create-id"
+import { generateRandomIDv1 } from "@planify/types"
 import { generateAIChatResponse } from "@/lib/api/chat-message"
 import { captureActionBefore } from "@/lib/chat/action-baseline"
 import { useEntityNavigation } from "@/lib/chat/entity-navigation"
@@ -224,7 +224,7 @@ export function AIChat({
 
         onAction: (action) => {
           addPendingAction(action)
-          // Snapshot the affected values now â€” this is the only moment the
+          // Snapshot the affected values now — this is the only moment the
           // plan is guaranteed to be in the pre-change state.
           appendAssistantPart({
             type: "action",
@@ -670,7 +670,7 @@ export function AIChat({
           </div>
 
           <p className="mt-2 text-xs text-muted-foreground">
-            Enter to send Â· Shift+Enter for a new line
+            Enter to send · Shift+Enter for a new line
           </p>
         </form>
       </CardContent>

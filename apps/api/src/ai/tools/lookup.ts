@@ -1,11 +1,11 @@
-﻿import { SchedulePlanTask, TaskGuideStep } from "@planify/types"
+import type { SchedulePlanTask, TaskGuideStep } from "@planify/types"
 
-import { AIChatToolContext } from "./tool-type"
+import type { AIChatToolContext } from "@planify/types"
 
 /**
  * Resolves the task list the conversation's scope points at: the main
  * schedule for "task", preparation for "pre-task". Tools only ever see one
- * list â€” tasks and pre-tasks are kept separate.
+ * list — tasks and pre-tasks are kept separate.
  */
 export function scopedTasks(
   context: Pick<AIChatToolContext, "virtualSchedule" | "scope">,
@@ -33,7 +33,7 @@ export interface GuideStepLocation {
 /**
  * Finds a guide step by its numeric ID within the scoped list.
  *
- * Guide-step actions carry only a `stepId` â€” not the owning task's ID â€” so
+ * Guide-step actions carry only a `stepId` — not the owning task's ID — so
  * the step is located by scanning every guide in scope. Step IDs are unique
  * within one guide; if they collide across guides, the first match wins.
  */

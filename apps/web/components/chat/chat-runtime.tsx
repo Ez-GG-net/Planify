@@ -3,8 +3,7 @@
 import { createContext, useContext } from "react"
 import type { ReactNode } from "react"
 
-import type { SchedulePlanTask } from "@planify/types"
-import type { AIChatScope } from "@/lib/ai/tools/tool-type"
+import type { AIChatScope, SchedulePlanTask } from "@planify/types"
 
 import type { GuideStepResolver } from "./pending-action-card"
 

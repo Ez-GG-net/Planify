@@ -1,13 +1,12 @@
 ﻿"use client"
 
 import { ReactNode, useState } from "react"
-import type { AIChatMessage, AIChatMessagePart } from "@planify/types"
-import { Bot, Check, ChevronDown, Clock3, User, X } from "lucide-react"
-
 import {
   formatProposedActionStatus,
   formatResolvedActionStatus,
-} from "@/lib/ai/tools/summaries"
+} from "@planify/types"
+import type { AIChatMessage, AIChatMessagePart } from "@planify/types"
+import { Bot, Check, ChevronDown, Clock3, User, X } from "lucide-react"
 
 import { PendingActionCard } from "./pending-action-card"
 import { useAIChatRuntime } from "./chat-runtime"
@@ -33,7 +32,7 @@ function formatThoughtDuration(seconds: number) {
 /**
  * Collapsible reasoning block.
  *
- * The block never opens or closes on its own â€” it starts collapsed and only
+ * The block never opens or closes on its own — it starts collapsed and only
  * a click toggles it. While deltas are streaming the header shimmers as
  * "Thinking"; once the stream stamps a measured duration onto the segment it
  * permanently reads "Thought for 3.6s".
@@ -87,15 +86,15 @@ function ThinkingBlock({
  * A tool call rendered together with any action proposals it produced, so
  * they read as one unit instead of separate parts:
  *
- *   [icon] modify_task Â· Proposed updating "Eat Lunch"
- *   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
- *   [icon] Update task "Eat Lunch"            â–¾
- *   Start time: 11:00 AM â†’ 12:00 PM
+ *   [icon] modify_task · Proposed updating "Eat Lunch"
+ *   ---------------------------------------------------------------------------------------
+ *   [icon] Update task "Eat Lunch"            ▾
+ *   Start time: 11:00 AM → 12:00 PM
  *   [Accept] [Reject]
  *
  * Status line precedence:
  *   1. resolved proposal state (past-tense / Rejected / apply failure)
- *   2. pending proposal state ("Proposed â€¦")
+ *   2. pending proposal state ("Proposed ...")
  *   3. server-composed outcome sentence (reads + failures)
  *   4. bare stream state as a fallback
  */
@@ -121,7 +120,7 @@ function ToolBlock({
   let isFailed = false
 
   if (toolPart.status === "started") {
-    statusLabel = "Runningâ€¦"
+    statusLabel = "Running..."
   } else if (toolPart.status === "failed") {
     Icon = X
     iconClassName = "text-destructive"
@@ -162,7 +161,7 @@ function ToolBlock({
       <div className="flex items-center gap-2 px-2.5 py-1.5 text-muted-foreground">
         <Icon className={`size-3.5 shrink-0 ${iconClassName}`} />
         <span>{toolPart.tool}</span>
-        <span aria-hidden="true">Â·</span>
+        <span aria-hidden="true">·</span>
         <span className={isFailed ? "text-destructive" : undefined}>
           {statusLabel}
         </span>
@@ -251,7 +250,7 @@ export default function AIChatMessageBubble({
         return
       }
 
-      // Action proposal without a matching tool part in this message â€”
+      // Action proposal without a matching tool part in this message —
       // render it standalone so it is never dropped silently.
       renderedParts.push(
         <div

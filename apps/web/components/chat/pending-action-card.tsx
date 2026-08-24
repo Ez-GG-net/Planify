@@ -19,7 +19,7 @@ import { useAIChatRuntime } from "./chat-runtime"
 /**
  * Resolves a guide step from the conversation's live guide. The step's
  * position travels with it because ids are array indexes that renumber
- * after every insert/move â€” a bare lookup cannot answer "where is it now".
+ * after every insert/move — a bare lookup cannot answer "where is it now".
  */
 export type GuideStepResolver = (
   stepId: number
@@ -43,7 +43,7 @@ interface ActionChangeRow {
 
 function formatDetailValue(value: unknown): string {
   if (value == null) {
-    return "â€”"
+    return "—"
   }
 
   if (typeof value === "string" || typeof value === "number") {
@@ -193,7 +193,7 @@ function ChangeRows({ rows }: { rows: ActionChangeRow[] }) {
               {row.before}
             </span>
             <span aria-hidden="true" className="text-muted-foreground/70">
-              â†’
+              → 
             </span>
             <span className="max-w-full font-medium wrap-break-word text-foreground">
               {row.after}

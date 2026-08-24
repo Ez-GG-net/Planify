@@ -1,3 +1,9 @@
+import type {
+  AIChatTool,
+  AIChatToolArguments,
+  AIChatToolContext,
+} from "@planify/types"
+
 import { createTask, createPreTask, createTaskGuideStep } from "./create"
 import { deleteTask, deletePreTask, deleteTaskGuideStep } from "./delete"
 import {
@@ -9,7 +15,6 @@ import {
   getTaskGuide,
 } from "./get"
 import { modifyPreTask, modifyTask, modifyTaskGuideStep } from "./modify"
-import { AIChatTool, AIChatToolArguments, AIChatToolContext } from "./tool-type"
 
 //Optional: add metadata such as description, execute, and requiresApproval so the model can get context about what it does
 export const aiTools = {
@@ -33,6 +38,12 @@ export const aiTools = {
   delete_task_guide_step: deleteTaskGuideStep,
 } as const
 
+/**
+ * Each tool declares its own argument shape via AIChatToolArguments.
+ * Calling through the union of signatures directly would require `args`
+ * to satisfy every shape at once, so the entry point passes them through
+ * opaquely; argument correctness is each tool's own contract.
+ */
 export async function executeTool(
   name: AIChatTool,
   args: AIChatToolArguments[AIChatTool],
@@ -44,12 +55,6 @@ export async function executeTool(
     throw new Error(`Unknown AI tool: ${name}`)
   }
 
-  /*
-   * Each tool declares its own argument shape via AIChatToolArguments.
-   * Calling through the union of signatures directly would require `args`
-   * to satisfy every shape at once, so the entry point passes them through
-   * opaquely; argument correctness is each tool's own contract.
-   */
   return (
     tool as (
       args: AIChatToolArguments[AIChatTool],
@@ -57,5 +62,3 @@ export async function executeTool(
     ) => Promise<unknown>
   )(args, context)
 }
-
-export * from "./tool-type"

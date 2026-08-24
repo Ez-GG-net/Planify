@@ -369,7 +369,7 @@ export default function TaskGuidePage() {
             )}
 
             {task.date != null && task.startTime != null && (
-              <span aria-hidden="true">Â·</span>
+              <span aria-hidden="true">·</span>
             )}
 
             {task.startTime != null && (
@@ -378,7 +378,7 @@ export default function TaskGuidePage() {
 
             {(task.date != null || task.startTime != null) &&
               task.estimatedDuration != null && (
-                <span aria-hidden="true">Â·</span>
+                <span aria-hidden="true">·</span>
               )}
 
             {task.estimatedDuration != null && (
@@ -422,7 +422,7 @@ export default function TaskGuidePage() {
         )}
       </main>
 
-      {/* Chat panel â€” persisted per task so navigating between the
+      {/* Chat panel — persisted per task so navigating between the
           schedule and this page keeps the guide conversation. */}
       {guide != null && !loadingGuide && (
         <AIChatPanel

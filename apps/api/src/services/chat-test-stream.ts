@@ -1,16 +1,21 @@
-﻿import { AIChatToolContext, executeTool } from "@/lib/ai/tools"
-import { formatToolFailure, formatToolSuccess } from "@/lib/ai/tools/summaries"
 import { SchedulePlanSchema } from "@planify/schemas"
 import {
-  AIChatUserMessage,
-  AIChatUserMessageContext,
   AIChatStreamEventSSEEPrefix,
-  AIChatStreamEvent,
-  AIChatPendingAction,
+  formatToolFailure,
+  formatToolSuccess,
+  generateRandomToolCallID,
 } from "@planify/types"
-import { AIChatTool, AIChatToolArguments } from "@/lib/ai/tools/tool-type"
-import { savePendingAction } from "@/lib/ai/test-action-store"
-import { generateRandomToolCallID } from "@/lib/create-id"
+import type {
+  AIChatPendingAction,
+  AIChatStreamEvent,
+  AIChatTool,
+  AIChatToolArguments,
+  AIChatToolContext,
+  AIChatUserMessageContext,
+} from "@planify/types"
+
+import { executeTool } from "../ai/tools"
+import { savePendingAction } from "../ai/test-action-store"
 
 function createSSEEvent(event: AIChatStreamEvent): string {
   return `${AIChatStreamEventSSEEPrefix} ${JSON.stringify(event)}\r\n\r\n`
@@ -47,7 +52,7 @@ function createToolContext(
 
 async function executeToolAndStream(
   controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder,
+  encoder: { encode(text: string): Uint8Array },
   tool: AIChatTool,
   args: AIChatToolArguments[AIChatTool],
   context: AIChatToolContext,
@@ -123,7 +128,7 @@ async function executeToolAndStream(
 
 function createTextStreamer(
   controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder,
+  encoder: { encode(text: string): Uint8Array },
   type: "thinking_delta" | "message_delta",
   text: string,
   delayMs: number,
@@ -159,7 +164,7 @@ function createTextStreamer(
  */
 async function streamThinking(
   controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder,
+  encoder: { encode(text: string): Uint8Array },
   text: string,
   delayMs: number,
 ) {
@@ -177,7 +182,15 @@ async function streamThinking(
   )
 }
 
-function testStream(
+/**
+ * The simulated model. Scripts an entire response: thinking/text deltas,
+ * read tools through executeToolAndStream(), one intentional tool failure,
+ * and one approval-gated modify_task proposal.
+ *
+ * Replaced by a real model call in a later phase; until then the event
+ * sequence and wire format are identical to what production will emit.
+ */
+export function testStream(
   context: AIChatUserMessageContext,
   delayMs: number,
 ): ReadableStream<Uint8Array> {
@@ -313,7 +326,7 @@ function testStream(
           delayMs,
         )
 
-        const errorResult = await executeToolAndStream(
+        await executeToolAndStream(
           controller,
           encoder,
           "invalid_tool_name" as AIChatTool,
@@ -322,8 +335,6 @@ function testStream(
           },
           toolContext,
         )
-
-
 
         /*
          * -----------------------------------------------------
@@ -389,8 +400,8 @@ function testStream(
 
         /*
          * -----------------------------------------------------
-         * Store the action so /api/chat/action can resolve it
-         * later.
+         * Store the action so a future resolution endpoint can
+         * look it up server-side.
          * -----------------------------------------------------
          */
 
@@ -456,74 +467,4 @@ function testStream(
       }
     },
   })
-}
-
-export async function POST(request: Request) {
-  try {
-    const {
-      message,
-      context,
-    }: {
-      message: AIChatUserMessage
-      context: AIChatUserMessageContext
-    } = await request.json()
-
-    /*
-     * ---------------------------------------------------------
-     * Validate request
-     * ---------------------------------------------------------
-     */
-
-    if (!message || message.content.trim().length === 0) {
-      throw new Error("Message is empty")
-    }
-
-    if (!message.id) {
-      throw new Error("Invalid message ID")
-    }
-
-    if (message.role !== "user") {
-      throw new Error(
-        `Message role is not user (reading: ${message.role})`,
-      )
-    }
-
-    console.log("Test AI request:", {
-      message,
-      context,
-    })
-
-    /*
-     * ---------------------------------------------------------
-     * Start simulated model stream
-     * ---------------------------------------------------------
-     */
-
-    const stream = testStream(
-      context,
-      50,
-    )
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-      },
-    })
-  } catch (error) {
-    console.error(
-      "Failed to generate chat response:",
-      error,
-    )
-
-    return Response.json(
-      {
-        error: "Failed to generate AI response",
-      },
-      {
-        status: 500,
-      },
-    )
-  }
 }

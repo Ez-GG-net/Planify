@@ -1,6 +1,4 @@
-﻿// @/lib/ai/test-action-store.ts
-
-import {
+import type {
   AIChatPendingAction,
   AIChatUserMessageContext,
 } from "@planify/types"

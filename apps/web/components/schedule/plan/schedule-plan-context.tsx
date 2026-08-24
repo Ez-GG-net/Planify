@@ -17,7 +17,7 @@ export interface SchedulePlanListValue {
   preTasks: SchedulePlanTask[]
   /** Ids of completed tasks across both lists. */
   completedIds: Set<string>
-  /** First uncompleted main task â€” the scroll/focus target. */
+  /** First uncompleted main task — the scroll/focus target. */
   focusTaskId: string | null
   planId: IDv1
   /** Flips a task's completion and persists the plan. */

@@ -6,7 +6,7 @@ import { Check, Lock } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { applyPendingAction } from "@/lib/ai/apply-pending-action"
-import type { AIChatScope } from "@/lib/ai/tools/tool-type"
+import type { AIChatScope } from "@planify/types"
 import { useHighlightParam } from "@/lib/chat/entity-navigation"
 import { scheduleChatKey } from "@/lib/chat/chat-storage"
 import { compareTasks } from "@/lib/task/task-state"
@@ -84,7 +84,7 @@ export default function SchedulePlanView({ plan, onPlanChange }: SchedulePlanVie
 
   /*
    * Completing the final pre-task while the user is looking at the
-   * preparation tab jumps straight to the schedule â€” the moment the unlock
+   * preparation tab jumps straight to the schedule — the moment the unlock
    * happens is exactly when the main plan becomes interesting. Transition-
    * only: mounting with everything already done never redirects, and
    * un-completing then re-completing re-fires naturally. Tracked during

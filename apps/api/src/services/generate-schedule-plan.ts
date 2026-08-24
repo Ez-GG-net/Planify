@@ -1,13 +1,20 @@
-﻿import { generateRandomIDv1 } from "@/lib/create-id";
-import { Schedule, SchedulePlan } from "@planify/types"
+import {
+  generateRandomIDv1,
+  type Schedule,
+  type SchedulePlan,
+} from "@planify/types";
 
-export async function POST(request: Request) {
-  try {
-  const body: Schedule = await request.json()
+/**
+ * Placeholder implementation preserved from the original Next.js route
+ * handler: fixed Paris itinerary after an artificial delay. Replaced by
+ * real AI generation in a later phase.
+ */
+export async function generateSchedulePlan(
+  input: Schedule,
+): Promise<SchedulePlan> {
+  console.log("Received wizard schedule:", input);
 
-  console.log("Received wizard schedule:", body)
-
-    //fake waiting time
+  //fake waiting time
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   const PLACEHOLDER_SCHEDULE = {
@@ -331,15 +338,12 @@ export async function POST(request: Request) {
         },
       },
     ],
-  }
+  };
 
   const schedulePlan: SchedulePlan = {
     id: generateRandomIDv1(),
-    ...PLACEHOLDER_SCHEDULE
-  }
+    ...PLACEHOLDER_SCHEDULE,
+  };
 
-  return Response.json(schedulePlan)
-} catch (e) {
-  return Response.error()
-}
+  return schedulePlan;
 }

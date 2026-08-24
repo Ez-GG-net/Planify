@@ -1,4 +1,7 @@
-﻿import { generateRandomIDv1 } from "@/lib/create-id"
+import {
+  generateRandomIDv1,
+  type AIChatScope,
+} from "@planify/types"
 import type {
   AIChatPendingAction,
   SchedulePlan,
@@ -7,13 +10,11 @@ import type {
   TaskGuideStep,
 } from "@planify/types"
 
-import type { AIChatScope } from "@/lib/ai/tools/tool-type"
-
 /*
  * Guide steps keep their array index as their ID, so `order` arguments map
  * directly to positions and IDs stay unique after every insert/move/delete.
  * The tradeoff: another pending guide action's stepId can dangle across a
- * renumber â€” acceptable while proposals resolve immediately; stable IDs would
+ * renumber — acceptable while proposals resolve immediately; stable IDs would
  * be the production-grade alternative.
  */
 function renumberSteps(steps: TaskGuideStep[]): TaskGuideStep[] {

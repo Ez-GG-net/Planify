@@ -32,19 +32,19 @@ pnpm monorepo (`pnpm-workspace.yaml`):
 - **API config** lives in `apps/api/src/config.ts`: `PORT` (default 3001), `WEB_ORIGINS` (comma-separated CORS allowlist, never `*`, credentials enabled).
 - Packages ship TS source directly; `apps/web` consumes them via `transpilePackages`.
 
-# Migration status (Next.js Route Handlers → Hono)
+# Migration status (Next.js Route Handlers → Hono) — COMPLETE
 
-Migrated to Hono: `POST /api/generate/review-questions` (placeholder behavior + schema validation).
-Still in `apps/web/app/api/generate/`: `schedule`, `task-guide`, `pre-task-guide`, `chat-response` — these are migrated next; do not add new logic to them.
+All five generate endpoints now live in Hono (`apps/api/src/routes/generate/`): `review-questions`, `schedule`, `task-guide`, `pre-task-guide`, `chat-response` (SSE). `apps/web/app/api/` no longer exists — do not recreate Next.js route handlers; add endpoints under `apps/api`.
 
 # AI chat architecture
 
 The assistant is a **simulated model** — there is no LLM call yet:
 
-- `apps/web/app/api/generate/chat-response/route.ts` (`testStream`) scripts entire responses: thinking/text deltas, tool calls through `executeToolAndStream()`, one approval-gated action.
+- `apps/api/src/services/chat-test-stream.ts` (`testStream`) scripts entire responses server-side: thinking/text deltas, tool calls through `executeToolAndStream()`, one intentional tool failure, one approval-gated action. The route is a thin adapter returning a raw `Response` (not `c.json`) because the SSE framing must stay byte-identical.
 - Transport is hand-rolled SSE: events delimited by `\r\n\r\n`, each line prefixed with `AIChatStreamEventSSEEPrefix` (`"data:"`). Event shapes live in `packages/schemas/src/chat-events.ts`.
-- Layering: `@planify/schemas` (zod) → `@planify/types` (inferred) → `lib/api/chat-message.ts` (fetch + event dispatch) → `components/chat/*` (UI). New stream events must be added to schema, dispatch switch, and callback schema together.
-- Tool registry: `aiTools` in `apps/web/lib/ai/tools/index.ts` (moves to the API in a later phase). Approval-gated tools push pending actions into the in-memory `lib/ai/test-action-store.ts`; there is no server-side resolution route yet, so Accept/Reject in the UI only mutates local React state and applies changes client-side via `lib/ai/apply-pending-action.ts`.
+- Layering: `@planify/schemas` (zod) → `@planify/types` (inferred) → API stream → `apps/web/lib/api/chat-message.ts` (fetch + event dispatch) → `components/chat/*` (UI). New stream events must be added to schema, dispatch switch, and callback schema together.
+- Tool registry: `aiTools` in `apps/api/src/ai/tools/index.ts` (server-side only; the browser never imports it). Shared tool types (`AIChatScope`, `AIChatToolArguments`, `AIChatToolContext`), ID generators (`create-id`), and status-line formatters (`tool-summaries.ts`) live in `packages/types/src/` so both apps consume identical copies — never re-create these web-local.
+- Approval-gated tools push pending actions into the server-side in-memory store `apps/api/src/ai/test-action-store.ts`; there is no resolution endpoint yet, so Accept/Reject in the UI only mutates local React state and applies changes client-side via `apps/web/lib/ai/apply-pending-action.ts` (which stays client-side by design).
 - In message parts, action proposals link back to their tool call via `action.toolCallId`; `components/chat/ai-chat-bubble.tsx` groups them for rendering.
 
 # Stack quirks

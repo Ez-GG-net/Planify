@@ -1,4 +1,4 @@
-import type { AIChatScope, AIChatToolContext } from "./tool-type"
+import type { AIChatScope, AIChatToolContext } from "@planify/types"
 
 /**
  * Produces the pre-task variant of a task tool by pinning its scope.

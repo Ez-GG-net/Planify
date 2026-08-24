@@ -1,16 +1,16 @@
-﻿import { AIChatPendingAction } from "@planify/types"
+import type { AIChatPendingAction } from "@planify/types"
 import {
   generateRandomActionID,
   generateRandomToolCallID,
-} from "@/lib/create-id"
+} from "@planify/types"
 
-import { AIChatToolContext } from "./tool-type"
+import type { AIChatToolContext } from "@planify/types"
 
 /**
  * Builds an approval-gated action proposal, registers it on the tool
  * context, and returns the tool result the model receives.
  *
- * Write tools never mutate `virtualSchedule` themselves â€” they only propose.
+ * Write tools never mutate `virtualSchedule` themselves — they only propose.
  * The change is applied client-side if the user accepts the action.
  *
  * The generic ties each call site's arguments to its action type while the

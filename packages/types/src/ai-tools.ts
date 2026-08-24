@@ -1,4 +1,7 @@
-﻿import { AIChatPendingAction, IDv1, SchedulePlan, TaskDetails } from "@planify/types"
+import type { AIChatPendingAction } from "./chat-action"
+import type { IDv1 } from "./id"
+import type { SchedulePlan } from "./schedule-plan"
+import type { TaskDetails } from "./task"
 
 /**
  * Which task list the conversation targets. Mirrors the chat panel's
@@ -99,7 +102,7 @@ export interface AIChatToolContext {
 
   /**
    * Which task list tools resolve entities against. Tasks and pre-tasks
-   * are kept separate â€” an ID from the other list is simply not found.
+   * are kept separate — an ID from the other list is simply not found.
    */
   scope: AIChatScope
 

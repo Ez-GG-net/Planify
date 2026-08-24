@@ -1,12 +1,9 @@
-﻿import type {
-  AIChatPendingAction,
-  SchedulePlan,
-  SchedulePlanTask,
-} from "@planify/types"
+import type { SchedulePlan, SchedulePlanTask } from "./schedule-plan"
+import type { AIChatPendingAction } from "./chat-action"
 import type {
   AIChatScope,
   AIChatTool,
-} from "./tool-type"
+} from "./ai-tools"
 
 /*
  * ---------------------------------------------------------------------------
@@ -17,9 +14,9 @@ import type {
  * states) can compose identical copy from the same vocabulary.
  *
  * Three tenses exist per write tool:
- *   proposed â€” the call completed and produced a proposal
- *   done     â€” the user accepted and it was applied
- *   failure  â€” execution threw
+ *   proposed — the call completed and produced a proposal
+ *   done     — the user accepted and it was applied
+ *   failure  — execution threw
  * ---------------------------------------------------------------------------
  */
 
@@ -101,7 +98,7 @@ function failurePhrase(tool: AIChatTool, scope: AIChatScope) {
   return FAILURE_ACTIONS[tool]?.(scope) ?? "run tool"
 }
 
-/** "Couldn't retrieve task â€” task not found". Entity omitted when unknown. */
+/** "Couldn't retrieve task — task not found". Entity omitted when unknown. */
 export function formatToolFailure(
   tool: AIChatTool,
   error: unknown,
@@ -110,7 +107,7 @@ export function formatToolFailure(
   const raw =
     error instanceof Error ? error.message : "unexpected server error"
 
-  return `Couldn't ${failurePhrase(tool, context.scope)} â€” ${normalizeReason(raw)}`
+  return `Couldn't ${failurePhrase(tool, context.scope)} — ${normalizeReason(raw)}`
 }
 
 /** Proposed-state copy shared by the streaming route and the client card. */
@@ -241,7 +238,7 @@ export function formatResolvedActionStatus(
   }
 
   if (action.status === "failed") {
-    return `Couldn't ${failurePhrase(actionTypeToTool(action.type), scope)} â€” apply failed`
+    return `Couldn't ${failurePhrase(actionTypeToTool(action.type), scope)} — apply failed`
   }
 
   // approved / applied -> past tense

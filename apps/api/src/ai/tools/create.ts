@@ -1,4 +1,4 @@
-import { AIChatToolArguments, AIChatToolContext } from "./tool-type"
+import type { AIChatToolArguments, AIChatToolContext } from "@planify/types"
 import { bindScope } from "./bind-scope"
 import { findScopedTask } from "./lookup"
 import { proposeAction } from "./pending-action"

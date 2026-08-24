@@ -17,8 +17,8 @@ import { IDv1, SchedulePlan } from "@planify/types"
  *
  * The provider loads schedules itself on mount (so server-rendered HTML
  * never reads localStorage) and exposes mutation helpers that update state
- * and persist in one step. Every consumer â€” sidebar renames, plan view
- * edits, deletion â€” works on the same array, so a change made in one place
+ * and persist in one step. Every consumer — sidebar renames, plan view
+ * edits, deletion — works on the same array, so a change made in one place
  * shows up everywhere immediately.
  */
 type ScheduleContextValue = {
