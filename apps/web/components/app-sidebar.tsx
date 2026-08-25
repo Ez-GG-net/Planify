@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { SchedulePlan } from "@planify/types"
 import { useSchedules } from "@/components/schedule/schedule-context"
+import { UserButton } from "@/components/auth/user-button"
 
 export function AppSidebar({
   onCreateSchedule,
@@ -181,7 +182,9 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter />
+      <SidebarFooter>
+        <UserButton callbackPath={pathname}/>
+      </SidebarFooter>
     </Sidebar>
   )
 }

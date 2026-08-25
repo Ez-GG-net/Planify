@@ -1,3 +1,5 @@
+// Must be the first import: every env-dependent module relies on it.
+import "./lib/load-env";
 import { serve } from "@hono/node-server";
 import { config } from "./config";
 import { app } from "./app";

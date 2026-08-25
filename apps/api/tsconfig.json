@@ -11,7 +11,6 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
       "@planify/api": ["./src/index.ts"],
       "@planify/api/*": ["./src/*"]

@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-planify}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-planify}
+      POSTGRES_DB: ${POSTGRES_DB:-planify}
+    volumes:
+      - planify_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-planify} -d ${POSTGRES_DB:-planify}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  planify_pgdata:

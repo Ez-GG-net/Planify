@@ -6,17 +6,25 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.4",
     "@planify/schemas": "workspace:*",
     "@planify/types": "workspace:*",
+    "better-auth": "^1.7.1",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.9.7",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.20.3",
     "typescript": "^5"
   }
