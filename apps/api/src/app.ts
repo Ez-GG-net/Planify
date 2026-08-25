@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { config } from "./config";
+import { checkDatabase } from "./db";
 import { handleApiError } from "./errors/handle-api-error";
 import { auth } from "./lib/auth";
 import { generateRoutes } from "./routes";
@@ -29,4 +30,10 @@ export const app = new Hono()
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/users", userRoutes)
   .route("/generate", generateRoutes)
-  .get("/health", (c) => c.json({ ok: true })); //Later add a more comprehensive health check
+  .get("/health", async (c) => {
+    const dbOk = await checkDatabase();
+    if (!dbOk) {
+      return c.json({ ok: false, database: "unreachable" }, 503);
+    }
+    return c.json({ ok: true, database: "connected" });
+  });

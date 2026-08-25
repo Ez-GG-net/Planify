@@ -21,27 +21,54 @@ interface ApiInit extends RequestInit {
     errorMessage?: string;
 }
 
+/**
+ * Thin wrapper around fetch for API calls. Adds credentials, JSON headers,
+ * and maps non-2xx responses into thrown errors with the server's message.
+ *
+ * Network-level failures (API server down, DNS failure, CORS block) throw
+ * a clear error so callers don't surface raw `TypeError: Failed to fetch`.
+ */
 export async function request(url: string, init?: ApiInit): Promise<Response> {
     const { errorMessage, ...fetchInit } = init ?? {};
 
     const safeUrl = new URL(url, API_BASE).toString();
-    const response = await fetch(safeUrl, {
-        headers: {
-            "Content-Type": "application/json",
-        },
-        // The API is authenticated via session cookies, so they must be
-        // sent on every cross-origin call. Callers may override.
-        credentials: "include",
-        ...fetchInit,
-    });
+
+    let response: Response;
+    try {
+        response = await fetch(safeUrl, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            // The API is authenticated via session cookies, so they must be
+            // sent on every cross-origin call. Callers may override.
+            credentials: "include",
+            ...fetchInit,
+        });
+    } catch (error) {
+        // fetch throws TypeError on network errors (DNS failure, connection
+        // refused, CORS preflight failure, etc.). Wrap in a meaningful message.
+        if (error instanceof TypeError) {
+            throw new Error(
+                errorMessage ?? "Cannot reach the API server. Is it running?",
+            );
+        }
+        throw error;
+    }
 
     if (!response.ok) {
-        // Prefer endpoint-provided copy; fall back to the server's own
-        // detail, then the status text.
-        const detail = await response.text().catch(() => "");
+        // Try to read the server's error envelope: { error: { code, message } }
+        let serverMessage = "";
+        try {
+            const body = await response.json();
+            serverMessage = body?.error?.message ?? "";
+        } catch {
+            // Response body wasn't JSON — fall through to status text
+        }
 
         throw new Error(
-            errorMessage ?? (detail || response.statusText || "Request failed")
+            errorMessage ??
+                (serverMessage ||
+                `Request failed (${response.status} ${response.statusText})`),
         );
     }
 
