@@ -63,6 +63,20 @@ export function ScheduleProvider({
     }
   }, [])
 
+  // When the browser restores this page from bfcache (back/forward),
+  // the [] effect above does not re-fire. Re-load stale data here.
+  useEffect(() => {
+    function handlePageShow(e: PageTransitionEvent) {
+      if (!e.persisted) return
+      void getScheduleRepository().getSchedules().then((result) => {
+        setSchedules(result)
+        setIsLoaded(true)
+      })
+    }
+    window.addEventListener("pageshow", handlePageShow)
+    return () => window.removeEventListener("pageshow", handlePageShow)
+  }, [])
+
   const updateSchedule = useCallback(
     async (nextPlan: SchedulePlan) => {
       setSchedules((current) =>

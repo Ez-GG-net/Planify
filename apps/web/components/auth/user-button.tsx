@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { authClient, useSession } from "@/lib/auth-client";
 import { UserAvatar } from "./user-avatar";
+import { useBfcacheRefresh } from "@/hooks/use-bfcache-refresh";
 
 /**
  * Sidebar footer widget: sign-in entry point when anonymous, user identity
  * + sign-out when authenticated. Session state comes from Better Auth's
  * reactive hook (fetches GET /auth/get-session on the API origin).
+ *
+ * The outer wrapper detects bfcache restoration (browser back/forward)
+ * and forces a remount so useSession() re-fetches the session.
  */
 export function UserButton({ callbackPath }: { callbackPath: string }) {
+  const bfcacheVersion = useBfcacheRefresh();
+  return <UserButtonInner key={bfcacheVersion} callbackPath={callbackPath} />;
+}
+
+function UserButtonInner({ callbackPath }: { callbackPath: string }) {
   const router = useRouter();
   const { data: session, isPending } = useSession();
 

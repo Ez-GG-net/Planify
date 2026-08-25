@@ -35,6 +35,20 @@ export default function ScheduleDashboardPage() {
     };
   }, []);
 
+  // Re-load after bfcache restore (back/forward button) — the [] effect
+  // above does not re-fire when the browser paints from cache.
+  useEffect(() => {
+    function handlePageShow(e: PageTransitionEvent) {
+      if (!e.persisted) return;
+      void getScheduleRepository().getSchedules().then((result) => {
+        setSchedules(result);
+        setHydrated(true);
+      });
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const isDesktop = useMediaQuery(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
 
   if (!hydrated) {
