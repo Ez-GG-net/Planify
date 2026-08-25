@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
   integer,
+  jsonb,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -120,9 +121,42 @@ export const userAvatar = pgTable("user_avatar", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * User-owned schedules. The full nested structure (preTasks, tasks with
+ * guides/steps) is stored as JSONB since the client always reads/writes
+ * the complete plan. Title/dates are promoted for sidebar display.
+ */
+export const schedule = pgTable(
+  "schedule",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    startDate: text("start_date").notNull(),
+    endDate: text("end_date").notNull(),
+    data: jsonb("data").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("schedule_userId_idx").on(table.userId)],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  schedules: many(schedule),
+}));
+
+export const scheduleRelations = relations(schedule, ({ one }) => ({
+  user: one(user, {
+    fields: [schedule.userId],
+    references: [user.id],
+  }),
 }));
 
 export const userAvatarRelations = relations(userAvatar, ({ one }) => ({
