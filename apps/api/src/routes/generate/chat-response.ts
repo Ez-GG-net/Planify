@@ -7,6 +7,7 @@ import {
 import { handleApiError } from "@planify/api/errors/handle-api-error";
 import { testStream } from "@planify/api/services/chat-test-stream";
 import { quota } from "@planify/api/services/quota-service";
+import { QuotaType } from "@planify/api/config/quota";
 
 /**
  * The chat stream returns raw SSE, so the whole body is one JSON object.
@@ -45,7 +46,21 @@ export default async function postChatResponse(c: Context): Promise<Response> {
     );
 
     //get how much quota we have reserved for this request (see /middleware/require-quota.ts)
-    const reservation = c.get("quotaReservation");
+    const reservation: { reserved: number; type: QuotaType } =
+      c.get("quotaReservation");
+
+    if (!reservation) {
+      throw new Error("No quota reservation found in context");
+    }
+
+    if (reservation.reserved <= 0) {
+      throw new Error(
+        `Invalid reserved quota amount`,
+      );
+    }
+
+    // Get the user ID from the context
+    const userId = c.get("user").id;
 
     console.log("Test AI request:", { message, context });
 
@@ -53,25 +68,29 @@ export default async function postChatResponse(c: Context): Promise<Response> {
 
     // Wrap the stream to count output bytes, then refund unused quota
     // Basically count bytes generated, and give back any unused quota tokens (assuming 4 bytes per token)
-    let totalBytes = 0;
+    let tokensUsed = 0;
     const trackingStream = originalStream.pipeThrough(
       new TransformStream({
-        // Transform is called for each chunk of data, so we can count bytes here
+        // Transform is called for each chunk of data, so we can count bytes to estimate token usage
         transform(chunk, controller) {
-          totalBytes += chunk.byteLength;
+          tokensUsed += estimateTokens(chunk.byteLength); //!TEMPORARY
           controller.enqueue(chunk);
+
+          //check if we have exceeded the reserved quota, and if so, throw an error to stop the stream
+          if (tokensUsed > reservation.reserved) {
+              throw new Error(
+                `Chat token usage limit reached`,
+                { cause: 'quota_exceeded' }
+              );
+            }
         },
         // Flush is called when the stream is closed, so we can refund any unused quota here
         async flush() {
-          if (reservation) {
-            const used = estimateTokens(totalBytes);
-            const unused = reservation.reserved - used;
+          const unused = reservation.reserved - tokensUsed;
 
-            // Only refund if we actually used less than we reserved (assuming that the stream will stop if it exceeds the reserved quota)
-            if (unused > 0) {
-              const userId = c.get("user").id;
-              await quota.refund(userId, reservation.type, unused);
-            }
+          // Only refund if we actually used less than we reserved
+          if (unused > 0) {
+            await quota.refund(userId, reservation.type, unused);
           }
         },
       }),
