@@ -29,14 +29,14 @@ export const httpScheduleRepository: StorageRepository = {
       await api<SchedulePlan>(`/schedules/${schedule.id}`, {
         method: "PUT",
         body: JSON.stringify(schedule),
-        errorMessage: "Failed to update schedule",
+        fallbackErrorMessage: "Failed to update schedule",
       })
     } catch {
       // Either network error or 404 — try create
       await api<SchedulePlan>("/schedules", {
         method: "POST",
         body: JSON.stringify(schedule),
-        errorMessage: "Failed to save schedule",
+        fallbackErrorMessage: "Failed to save schedule",
       })
     }
   },
@@ -44,7 +44,7 @@ export const httpScheduleRepository: StorageRepository = {
   async deleteSchedule(id) {
     await api(`/schedules/${id}`, {
       method: "DELETE",
-      errorMessage: "Failed to delete schedule",
+      fallbackErrorMessage: "Failed to delete schedule",
     })
   },
 }
