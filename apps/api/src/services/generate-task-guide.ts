@@ -32,7 +32,7 @@ export async function generateTaskGuide(
 
 **Salut** means "hi" and is more casual.
 
-> ðŸ’¡ Use **bonjour** when you're unsure which greeting to use.
+> Use **bonjour** when you're unsure which greeting to use.
      `,
         estimatedDuration: 5,
       },
