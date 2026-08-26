@@ -68,7 +68,7 @@ function WizardLoading({
   }, [messages.length, isAlmostDone])
 
   return (
-    <div className="flex min-h-[450px] flex-col items-center justify-center px-4 text-center">
+    <div className="flex min-h-112.5 flex-col items-center justify-center px-4 text-center">
       <LoaderCircle className="mb-6 h-10 w-10 animate-spin text-primary" />
 
       <h2 className="text-3xl font-semibold">Generating {title}</h2>
@@ -99,7 +99,7 @@ function WizardLoadingError({
   goBackFn: () => void
 }) {
   return (
-    <div className="flex min-h-[450px] flex-col items-center justify-center text-center">
+    <div className="flex min-h-112.5 flex-col items-center justify-center text-center">
       <CircleAlert className="mb-2 h-10 w-10 text-destructive" />
 
       <h2 className="text-3xl font-semibold">Something went wrong</h2>
