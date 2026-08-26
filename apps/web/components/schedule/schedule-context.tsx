@@ -8,9 +8,11 @@ import {
   useMemo,
   useState,
 } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 import { getScheduleRepository } from "@/database"
 import { IDv1, SchedulePlan } from "@planify/types"
+import { useSession } from "@/lib/auth-client"
 
 /**
  * Single source of truth for the schedule list.
@@ -40,11 +42,21 @@ export function ScheduleProvider({
 }) {
   const [schedules, setSchedules] = useState<SchedulePlan[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
+  const { data: session, isPending } = useSession()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  // Load in an effect so the server-rendered HTML never reads localStorage
-  // (which only exists in the browser). The setState calls happen inside the
-  // async function, not synchronously in the effect body.
+  // Redirect unauthenticated users to sign-in.
   useEffect(() => {
+    if (!isPending && !session) {
+      router.replace("/sign-in?callbackPath=" + encodeURIComponent(pathname))
+    }
+  }, [isPending, session, router, pathname])
+
+  // Load schedules once authenticated.
+  useEffect(() => {
+    if (isPending || !session) return
+
     let cancelled = false
 
     async function loadSchedules() {
@@ -61,13 +73,13 @@ export function ScheduleProvider({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isPending, session])
 
   // When the browser restores this page from bfcache (back/forward),
   // the [] effect above does not re-fire. Re-load stale data here.
   useEffect(() => {
     function handlePageShow(e: PageTransitionEvent) {
-      if (!e.persisted) return
+      if (!e.persisted || !session) return
       void getScheduleRepository().getSchedules().then((result) => {
         setSchedules(result)
         setIsLoaded(true)
@@ -75,7 +87,7 @@ export function ScheduleProvider({
     }
     window.addEventListener("pageshow", handlePageShow)
     return () => window.removeEventListener("pageshow", handlePageShow)
-  }, [])
+  }, [session])
 
   const updateSchedule = useCallback(
     async (nextPlan: SchedulePlan) => {

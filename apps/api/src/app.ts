@@ -5,6 +5,7 @@ import { checkDatabase } from "./db";
 import { handleApiError } from "./errors/handle-api-error";
 import { auth } from "./lib/auth";
 import { generateRoutes } from "./routes";
+import { scheduleRoutes } from "./routes/schedules";
 import { userRoutes } from "./routes/users";
 
 /**
@@ -23,12 +24,13 @@ export const app = new Hono()
     cors({
       origin: config.allowedOrigins,
       credentials: true,
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type"],
     }),
   )
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/users", userRoutes)
+  .route("/schedules", scheduleRoutes)
   .route("/generate", generateRoutes)
   .get("/health", async (c) => {
     const dbOk = await checkDatabase();

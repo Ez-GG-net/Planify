@@ -1,5 +1,5 @@
-import { indexedDBScheduleRepository } from "./internal/indexed-db-repo"
+import { httpScheduleRepository } from "./internal/http-repo"
 
 export function getScheduleRepository() {
-  return indexedDBScheduleRepository
+  return httpScheduleRepository
 }
