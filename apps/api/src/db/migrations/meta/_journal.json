@@ -15,6 +15,13 @@
       "when": 1787700965786,
       "tag": "0001_ambiguous_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787706454874,
+      "tag": "0002_fearless_kang",
+      "breakpoints": true
     }
   ]
 }

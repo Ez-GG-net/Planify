@@ -146,10 +146,41 @@ export const schedule = pgTable(
   (table) => [index("schedule_userId_idx").on(table.userId)],
 );
 
+/**
+ * Per-user monthly quota tracking. Each row represents one quota type
+ * for one calendar month (UTC). The `used` counter is incremented on
+ * reserve and decremented on refund.
+ */
+export const quotaUsage = pgTable(
+  "quota_usage",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    quotaType: text("quota_type").notNull(),
+    periodStart: timestamp("period_start").notNull(),
+    used: integer("used").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("quota_usage_user_type_period_idx").on(
+      table.userId,
+      table.quotaType,
+      table.periodStart,
+    ),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   schedules: many(schedule),
+  quotaUsage: many(quotaUsage),
 }));
 
 export const scheduleRelations = relations(schedule, ({ one }) => ({

@@ -5,6 +5,7 @@ import { checkDatabase } from "./db";
 import { handleApiError } from "./errors/handle-api-error";
 import { auth } from "./lib/auth";
 import { generateRoutes } from "./routes";
+import { quotaRoutes } from "./routes/quota";
 import { scheduleRoutes } from "./routes/schedules";
 import { userRoutes } from "./routes/users";
 
@@ -29,9 +30,10 @@ export const app = new Hono()
     }),
   )
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
-  .route("/users", userRoutes)
-  .route("/schedules", scheduleRoutes)
-  .route("/generate", generateRoutes)
+  .route("/users", userRoutes) // combines with an ID to get user-scoped resources (e.g. avatar)
+  .route("/schedules", scheduleRoutes) // gets all schedules on /, combines with an ID to CRUD a single plan
+  .route("/generate", generateRoutes) // generates content using AI (e.g. schedules, chat)
+  .route("/quota", quotaRoutes) // gets quota usage and remaining allowance
   .get("/health", async (c) => {
     const dbOk = await checkDatabase();
     if (!dbOk) {
