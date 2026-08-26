@@ -23,7 +23,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-self-center p-6 fixed inset-0">
       <div className="w-full max-w-md space-y-4 text-center">
         <h1 className="text-2xl font-semibold text-foreground">
           Something went wrong
