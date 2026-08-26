@@ -34,8 +34,8 @@ export const auth = betterAuth({
   secret: config.auth.secret,
 
   session: {
-    expiresIn: 5 * 60, // 5 minutes
-    updateAge: 60, // push the session expiry date forward every 60 seconds (1 minute) to keep it alive
+    expiresIn: 24 * 60 * 60, // seconds (1 day)
+    updateAge: 5 * 60, // seconds (5 minutes), pushes the session expiry date forward to keep it alive
     //disableSessionRefresh: true, // never refresh the session automatically (push the expiry date forward)
   },
 
