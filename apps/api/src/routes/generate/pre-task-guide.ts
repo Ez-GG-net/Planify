@@ -17,7 +17,7 @@ export default async function postPreTaskGuide(c: Context): Promise<Response> {
 
     const remaining = await quota.remaining(userId, "pre_task_guide");
     if (remaining <= 0) {
-      throw new ApiError(429, "quota_exceeded", "Monthly pre_task_guide limit reached.");
+      throw new ApiError(429, "quota_exceeded", "Monthly limit for generating pre-task guides reached.");
     }
 
     const task = SchedulePlanTaskSchema.parse(await c.req.json());

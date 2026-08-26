@@ -9,6 +9,6 @@ export function generateSchedulePlan(
         method: "POST",
         body: JSON.stringify(schedule),
         signal,
-        errorMessage: "Failed to create schedule",
+        fallbackErrorMessage: "Failed to create schedule",
     });
 }

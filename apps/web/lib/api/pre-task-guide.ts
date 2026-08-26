@@ -9,6 +9,6 @@ export function generatePreTaskGuide(
         method: "POST",
         body: JSON.stringify(task),
         signal,
-        errorMessage: "Failed to generate pre-task guide",
+        fallbackErrorMessage: "Failed to generate pre-task guide",
     });
 }

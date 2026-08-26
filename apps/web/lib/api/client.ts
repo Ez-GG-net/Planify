@@ -14,11 +14,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 interface ApiInit extends RequestInit {
     /**
-     * Error message thrown when the response is not ok. Provided messages
-     * win over whatever the server returned, keeping user-facing failure
-     * copy stable per endpoint.
+     * Error message thrown when the response is not ok and no specific error
+     * message is available from the server. Server messages are used when
+     * available, keeping provided error message as fallback.
      */
-    errorMessage?: string;
+    fallbackErrorMessage?: string;
 }
 
 /**
@@ -29,7 +29,7 @@ interface ApiInit extends RequestInit {
  * a clear error so callers don't surface raw `TypeError: Failed to fetch`.
  */
 export async function request(url: string, init?: ApiInit): Promise<Response> {
-    const { errorMessage, ...fetchInit } = init ?? {};
+    const { fallbackErrorMessage, ...fetchInit } = init ?? {};
 
     const safeUrl = new URL(url, API_BASE).toString();
 
@@ -49,7 +49,7 @@ export async function request(url: string, init?: ApiInit): Promise<Response> {
         // refused, CORS preflight failure, etc.). Wrap in a meaningful message.
         if (error instanceof TypeError) {
             throw new Error(
-                errorMessage ?? "Cannot reach the API server. Is it running?",
+                fallbackErrorMessage ?? "Cannot reach the API server. Is it running?",
             );
         }
         throw error;
@@ -57,18 +57,17 @@ export async function request(url: string, init?: ApiInit): Promise<Response> {
 
     if (!response.ok) {
         // Try to read the server's error envelope: { error: { code, message } }
-        let serverMessage = "";
+        let serverError = { code: null, message: null };
         try {
             const body = await response.json();
-            serverMessage = body?.error?.message ?? "";
+            serverError = body?.error ?? "";
         } catch {
             // Response body wasn't JSON — fall through to status text
         }
-
         throw new Error(
-            errorMessage ??
-                (serverMessage ||
-                `Request failed (${response.status} ${response.statusText})`),
+            serverError.message ??
+                (fallbackErrorMessage ||
+                `Request failed (${response.status} ${response.statusText})`), { cause: serverError.code ?? response.status.toString() }
         );
     }
 

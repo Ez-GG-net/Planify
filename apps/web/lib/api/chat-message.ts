@@ -34,7 +34,7 @@ export async function generateAIChatResponse(
       message,
       context,
     }),
-    errorMessage: "Failed to generate AI response",
+    fallbackErrorMessage: "Failed to generate AI response",
   })
 
   if (!response.body) {

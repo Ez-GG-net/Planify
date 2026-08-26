@@ -9,6 +9,6 @@ export function generateTaskGuide(
         method: "POST",
         body: JSON.stringify(task),
         signal,
-        errorMessage: "Failed to generate task guide",
+        fallbackErrorMessage: "Failed to generate task guide",
     });
 }

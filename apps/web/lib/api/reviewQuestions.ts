@@ -9,6 +9,6 @@ export function generateReviewQuestions(
         method: "POST",
         body: JSON.stringify(schedule),
         signal,
-        errorMessage: "Failed to generate review questions",
+        fallbackErrorMessage: "Failed to generate review questions",
     });
 }

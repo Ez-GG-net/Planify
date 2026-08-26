@@ -22,7 +22,7 @@ export default async function postReviewQuestions(
     // Check remaining quota before doing expensive work.
     const remaining = await quota.remaining(userId, "review_questions");
     if (remaining <= 0) {
-      throw new ApiError(429, "quota_exceeded", "Monthly review_questions limit reached.");
+      throw new ApiError(429, "quota_exceeded", "Monthly limit for generating review questions reached.");
     }
 
     // Runtime validation; the parsed result IS the WizardSchedule type.

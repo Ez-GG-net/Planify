@@ -17,7 +17,7 @@ export default async function postTaskGuide(c: Context): Promise<Response> {
 
     const remaining = await quota.remaining(userId, "task_guide");
     if (remaining <= 0) {
-      throw new ApiError(429, "quota_exceeded", "Monthly task_guide limit reached.");
+      throw new ApiError(429, "quota_exceeded", "Monthly limit for generating task guides reached.");
     }
 
     const task = SchedulePlanTaskSchema.parse(await c.req.json());

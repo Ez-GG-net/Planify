@@ -17,7 +17,7 @@ export default async function postSchedule(c: Context): Promise<Response> {
 
     const remaining = await quota.remaining(userId, "schedule_plan");
     if (remaining <= 0) {
-      throw new ApiError(429, "quota_exceeded", "Monthly schedule_plan limit reached.");
+      throw new ApiError(429, "quota_exceeded", "Monthly limit for generating schedule plans reached.");
     }
 
     const schedule = ScheduleSchema.parse(await c.req.json());
