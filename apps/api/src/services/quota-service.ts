@@ -88,6 +88,9 @@ export const quota = {
       .update(quotaUsage)
       .set({ used: row.used + amount })
       .where(eq(quotaUsage.id, row.id));
+    
+    //!TEMPORARY
+    console.log(`[quota] Reserved ${amount} units for user ${userId} (type: ${type}). New usage: ${row.used + amount}/${limit}`);
 
     return true;
   },
@@ -108,6 +111,9 @@ export const quota = {
       .update(quotaUsage)
       .set({ used: next })
       .where(eq(quotaUsage.id, row.id));
+
+    //!TEMPORARY
+    console.log(`[quota] Refunded ${amount} units for user ${userId} (type: ${type}). New usage: ${next}/${QUOTA_LIMITS[type].monthly}`);
   },
 
   /** Current usage summary for display in the UI. */
