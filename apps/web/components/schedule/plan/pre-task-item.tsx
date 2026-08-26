@@ -6,6 +6,7 @@ import { TaskStateIndicator } from "./task-state-indicator"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { minutesToDurationLabel } from "@/lib/task/task-time"
+import { cn } from "@/lib/utils"
 
 interface PreTaskItemProps {
   task: SchedulePlanTask
@@ -93,12 +94,12 @@ function TaskRow({
       </span>
 
       <span
-        className={[
+        className={cn(
           "min-w-0 flex-1 truncate text-sm font-medium",
-          isCompleted
+          (isCompleted
             ? "text-muted-foreground line-through"
-            : "text-foreground",
-        ].join(" ")}
+            : "text-foreground")
+  )}
       >
         {task.title}
       </span>
