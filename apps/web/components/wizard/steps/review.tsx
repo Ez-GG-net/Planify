@@ -21,12 +21,14 @@ export default function WizardReviewStep({
   reviewQuestions,
   reviewAnswers,
   setReviewAnswers,
+  quotaExhausted,
   onRegenerate,
 }:  {
   reviewQuestions: ReviewQuestion[]
   reviewAnswers: ReviewAnswer[]
   setReviewAnswers: (reviewAnswers: ReviewAnswer[]) => void
-  onRegenerate?: () => void
+  quotaExhausted: boolean
+  onRegenerate: () => void
 }) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
 
@@ -123,6 +125,7 @@ export default function WizardReviewStep({
             className="shrink-0 text-muted-foreground hover:text-foreground"
             aria-label="Regenerate questions"
             title="Regenerate questions"
+            disabled={quotaExhausted}
             onClick={onRegenerate}
           >
             <RefreshCw className="size-4" />

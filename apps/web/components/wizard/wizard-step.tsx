@@ -133,6 +133,14 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     reviewAnswers,
     reviewQuestions,
   } = wizard
+
+  const scheduleQuotaExhausted =
+    quota != null &&
+    (quota.schedule_plan?.used ?? 0) >= (quota.schedule_plan?.limit ?? Infinity)
+  const reviewQuotaExhausted =
+    quota != null &&
+    (quota.review_questions?.used ?? 0) >= (quota.review_questions?.limit ?? Infinity)
+
   function updateSchedule(updates: Partial<WizardSchedule>) {
     setWizard((prev) => ({
       ...prev,
@@ -450,6 +458,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
                 reviewAnswers,
               }))
             }
+            quotaExhausted={reviewQuotaExhausted}
             onRegenerate={() => {
               // Save previous questions so cancel can restore them.
               savedReviewRef.current = {
@@ -635,7 +644,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
                     )
                 : () => setStep(stepNum + 1)
           }
-          disabled={isNextDisabled()}
+          disabled={isNextDisabled() || (stepNum == TOTAL_STEPS && scheduleQuotaExhausted)}
         >
           {stepNum == TOTAL_STEPS ? "Create" : "Next"}
           {stepNum == TOTAL_STEPS ? (
