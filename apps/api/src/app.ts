@@ -4,7 +4,7 @@ import { config } from "./config";
 import { checkDatabase } from "./db";
 import { handleApiError } from "./errors/handle-api-error";
 import { auth } from "./lib/auth";
-import { generateRoutes } from "./routes";
+import { generateRoutes } from "./routes/generate";
 import { quotaRoutes } from "./routes/quota";
 import { scheduleRoutes } from "./routes/schedules";
 import { userRoutes } from "./routes/users";
