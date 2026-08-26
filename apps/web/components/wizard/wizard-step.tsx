@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useEffect, useRef, useState } from "react"
 import WizardProgress from "@/components/ui/wizard-progress"
-import { ArrowLeft, ArrowRight, CalendarPlus, RotateCcw } from "lucide-react"
+import { AlertTriangleIcon, ArrowLeft, ArrowRight, CalendarPlus, RotateCcw } from "lucide-react"
 import {
   Field,
   FieldContent,
@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation"
 import { fetchQuotaUsage, type QuotaUsage } from "@/lib/api/quota"
 import type { ReviewQuestion, ReviewAnswer } from "@planify/types"
 import { QuotaHint } from "./quotaHint"
+import { Separator } from "@/components/ui/separator"
 
 const TOTAL_STEPS = 4
 
@@ -339,6 +340,17 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
               Describe the main objective you want this schedule to help you
               accomplish.
             </FieldDescription>
+            {scheduleQuotaExhausted && (
+              <>
+                <Separator />
+                <p className="text-sm font-normal text-destructive text-center">
+                    You've reached your limit for generating schedule plans.
+                </p>
+                <p className="text-xs text-muted-foreground text-center">
+                  Limit resets on {new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1)).toLocaleDateString(undefined, { month: "long", day: "numeric" })}
+                </p>
+              </>
+            )}
           </Field>
         ),
       }
