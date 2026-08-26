@@ -280,7 +280,7 @@ export default function AIChatMessageBubble({
           isUser ? "bg-primary text-primary-foreground" : "bg-muted"
         }`}
       >
-        {isUser || !parts ? (
+        {isUser || !(parts && parts.length > 0) ? (
           message.content
         ) : (
           <div className="space-y-3">{renderedParts}</div>

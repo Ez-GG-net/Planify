@@ -12,6 +12,7 @@ import {
   User,
   X,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +29,7 @@ import type {
 } from "@planify/types"
 import { generateRandomIDv1 } from "@planify/types"
 import { generateAIChatResponse } from "@/lib/api/chat-message"
+import { fetchQuotaUsage } from "@/lib/api/quota"
 import { captureActionBefore } from "@/lib/chat/action-baseline"
 import { useEntityNavigation } from "@/lib/chat/entity-navigation"
 import {
@@ -100,6 +102,17 @@ function collectPendingActions(
   return actions
 }
 
+/*
+ * Computes the first day of the next UTC month as a human-readable label
+ * ("March 1"). Reused for both the catch-block response and the mid-stream
+ * toast so both stay in sync.
+ */
+function getNextResetDateLabel(): string {
+  return new Date(
+    Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1),
+  ).toLocaleDateString(undefined, { month: "long", day: "numeric" })
+}
+
 export function AIChat({
   context,
   onApplyUpdate,
@@ -128,6 +141,8 @@ export function AIChat({
   const [isSending, setIsSending] = useState(false)
   const [failedRequest, setFailedRequest] = useState(false)
   const [isFollowingStream, setIsFollowingStream] = useState(true)
+  const [tokensUsed, setTokensUsed] = useState(0)
+  const [tokenLimit, setTokenLimit] = useState<number | null>(null)
 
   const messageListRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -154,6 +169,18 @@ export function AIChat({
 
   useEffect(() => {
     inputRef.current?.focus()
+  }, [])
+
+  // Fetch chat token quota on mount.
+  useEffect(() => {
+    let cancelled = false
+    fetchQuotaUsage().then((data) => {
+      if (!cancelled && data.chat_tokens) {
+        setTokensUsed(data.chat_tokens.used)
+        setTokenLimit(data.chat_tokens.limit)
+      }
+    })
+    return () => { cancelled = true }
   }, [])
 
   /*
@@ -236,21 +263,43 @@ export function AIChat({
         onActionResolved: (actionId, status) => {
           resolvePendingAction(actionId, status)
         },
+
+        onUsage: (outputTokens) => {
+          setTokensUsed((prev) => prev + outputTokens)
+        },
+
+        onUsageLimitReached: (message) => {
+          const resetLabel = getNextResetDateLabel()
+          toast.warning(message, {
+            description: `Your limit resets on ${resetLabel}`,
+            duration: 10_000,
+          })
+        },
       })
 
       updateAssistantMessage((message) => ({
         ...message,
         content: aiResponse.content,
       }))
-      activeAssistantMessageIdRef.current = null
+
     } catch (error) {
-      activeAssistantMessageIdRef.current = null
+      // If the server rejected the request because the monthly chat-token
+      // quota is exhausted, surface the message inside the assistant bubble
+      // so it looks like the AI is telling the user directly.
+      const isQuotaExceeded =
+        error instanceof Error && error.cause === "quota_exceeded"
 
-      console.error("Failed to generate AI response:", error)
+      if (isQuotaExceeded) {
+        const resetLabel = getNextResetDateLabel()
+        updateAssistantMessage((message) => ({
+          ...message,
+          content: `Max token limit reached. Please wait until ${resetLabel} for your usage to reset.`,
+        }))
+      }
 
-      // Set your failedRequest state here.
-      setFailedRequest(true)
+      //setFailedRequest(true)
     }
+    activeAssistantMessageIdRef.current = null
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -310,17 +359,6 @@ export function AIChat({
     setPendingActions([])
     setFailedRequest(false)
     setIsFollowingStream(true)
-  }
-
-  /*
-   * --------------------------------------------------------------------------
-   * Updates
-   * --------------------------------------------------------------------------
-   */
-
-  const applyUpdate = () => {
-    // TODO: Apply the AI-generated update to the parent component.
-    onApplyUpdate("t")
   }
 
   /*
@@ -669,9 +707,28 @@ export function AIChat({
             </Button>
           </div>
 
-          <p className="mt-2 text-xs text-muted-foreground">
-            Enter to send · Shift+Enter for a new line
-          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="shrink-0 text-xs text-muted-foreground">
+              Enter to send · Shift+Enter for a new line
+            </p>
+
+            {tokenLimit != null && (
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{
+                      width: `${Math.min(100, (tokensUsed / tokenLimit) * 100)}%`,
+                    }}
+                  />
+                </div>
+
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {(tokensUsed / 1000).toFixed(1)}k / {(tokenLimit / 1000).toFixed(1)}k tokens used
+                </span>
+              </div>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

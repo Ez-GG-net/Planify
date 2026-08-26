@@ -25,6 +25,25 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Rough token estimate: ~4 chars per token.
+ * Mirrors the same heuristic in chat-response.ts.
+ */
+function estimateTokens(bytes: number): number {
+  return Math.ceil(bytes / 4)
+}
+
+/**
+ * Thrown inside testStream when the reserved token quota is exceeded.
+ * The route layer catches this and maps it to an SSE error + HTTP 429.
+ */
+export class UsageLimitReachedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "UsageLimitReachedError"
+  }
+}
+
 function createToolContext(
   context: AIChatUserMessageContext,
 ): AIChatToolContext {
@@ -51,8 +70,7 @@ function createToolContext(
 }
 
 async function executeToolAndStream(
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: { encode(text: string): Uint8Array },
+  track: (event: AIChatStreamEvent) => void,
   tool: AIChatTool,
   args: AIChatToolArguments[AIChatTool],
   context: AIChatToolContext,
@@ -62,15 +80,11 @@ async function executeToolAndStream(
   context.currentToolCallId = toolCallId
 
   //tell the client that the model is starting to execute the tool
-  controller.enqueue(
-    encoder.encode(
-      createSSEEvent({
-        type: "tool_started",
-        toolCallId,
-        tool,
-      }),
-    ),
-  )
+  track({
+    type: "tool_started",
+    toolCallId,
+    tool,
+  })
 
   await delay(500)
 
@@ -87,18 +101,14 @@ async function executeToolAndStream(
     //tell the client this specific tool call failed before the outer
     //catch converts the whole request into an "error" event; the failure
     //sentence is composed where the error message is actually known
-    controller.enqueue(
-      encoder.encode(
-        createSSEEvent({
-          type: "tool_failed",
-          toolCallId,
-          tool,
-          statusText: formatToolFailure(tool, error, {
-            scope: context.scope,
-          }),
-        }),
-      ),
-    )
+    track({
+      type: "tool_failed",
+      toolCallId,
+      tool,
+      statusText: formatToolFailure(tool, error, {
+        scope: context.scope,
+      }),
+    })
     return result
   } finally {
     context.currentToolCallId = undefined
@@ -109,26 +119,21 @@ async function executeToolAndStream(
 
   //tell the client that the model has completed executing the tool,
   //including a one-line description of what the call produced
-  controller.enqueue(
-    encoder.encode(
-      createSSEEvent({
-        type: "tool_completed",
-        toolCallId,
-        tool,
-        statusText: formatToolSuccess(tool, args, result, {
-          virtualSchedule: context.virtualSchedule,
-          scope: context.scope,
-        }),
-      }),
-    ),
-  )
+  track({
+    type: "tool_completed",
+    toolCallId,
+    tool,
+    statusText: formatToolSuccess(tool, args, result, {
+      virtualSchedule: context.virtualSchedule,
+      scope: context.scope,
+    }),
+  })
 
   return result
 }
 
 function createTextStreamer(
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: { encode(text: string): Uint8Array },
+  track: (event: AIChatStreamEvent) => void,
   type: "thinking_delta" | "message_delta",
   text: string,
   delayMs: number,
@@ -143,14 +148,7 @@ function createTextStreamer(
     for (const chunk of chunks) {
       if (!chunk) continue
 
-      controller.enqueue(
-        encoder.encode(
-          createSSEEvent({
-            type,
-            content: chunk,
-          }),
-        ),
-      )
+      track({ type, content: chunk })
 
       await delay(delayMs)
     }
@@ -163,23 +161,18 @@ function createTextStreamer(
  * of guessing from message timing. Each call is its own collapsible segment.
  */
 async function streamThinking(
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: { encode(text: string): Uint8Array },
+  track: (event: AIChatStreamEvent) => void,
   text: string,
   delayMs: number,
 ) {
   const startedAt = Date.now()
 
-  await createTextStreamer(controller, encoder, "thinking_delta", text, delayMs)
+  await createTextStreamer(track, "thinking_delta", text, delayMs)
 
-  controller.enqueue(
-    encoder.encode(
-      createSSEEvent({
-        type: "thinking_finished",
-        durationSeconds: (Date.now() - startedAt) / 1000,
-      }),
-    ),
-  )
+  track({
+    type: "thinking_finished",
+    durationSeconds: (Date.now() - startedAt) / 1000,
+  })
 }
 
 /**
@@ -189,15 +182,51 @@ async function streamThinking(
  *
  * Replaced by a real model call in a later phase; until then the event
  * sequence and wire format are identical to what production will emit.
+ *
+ * @param tokenLimit - When set, the stream tracks estimated token usage
+ *   (bytes / 4) and emits a `usage_limit_reached` SSE event followed by
+ *   an error once the limit is exceeded. The caller (chat-response route)
+ *   still owns refunding unused quota via the TransformStream flush.
  */
 export function testStream(
   context: AIChatUserMessageContext,
   delayMs: number,
+  tokenLimit?: number,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
 
   return new ReadableStream({
     async start(controller) {
+      // Token-tracking state shared across all enqueue calls.
+      const usage = { tokensUsed: 0 }
+
+      /**
+       * Wraps every controller.enqueue so we can count output bytes and
+       * abort when the reserved quota is exceeded. This is the single
+       * choke-point for token accounting — all SSE events go through here.
+       */
+      const track = (event: AIChatStreamEvent) => {
+        controller.enqueue(encoder.encode(createSSEEvent(event)))
+
+        usage.tokensUsed += estimateTokens(JSON.stringify(event).length)
+
+        if (tokenLimit != null && usage.tokensUsed > tokenLimit) {
+          // Tell the client the limit was hit before erroring the stream.
+          controller.enqueue(
+            encoder.encode(
+              createSSEEvent({
+                type: "usage_limit_reached",
+                message: "Chat token usage limit reached",
+              }),
+            ),
+          )
+
+          throw new UsageLimitReachedError(
+            "Chat token usage limit reached",
+          )
+        }
+      }
+
       try {
         /*
          * -----------------------------------------------------
@@ -214,8 +243,7 @@ export function testStream(
          */
 
         await streamThinking(
-          controller,
-          encoder,
+          track,
           "I'll look through your schedule to find the Eat Lunch task.",
           delayMs,
         )
@@ -227,8 +255,7 @@ export function testStream(
          */
 
         await createTextStreamer(
-          controller,
-          encoder,
+          track,
           "message_delta",
           "Let me take a look at your schedule.",
           delayMs,
@@ -243,8 +270,7 @@ export function testStream(
          */
 
         const scheduleResult = await executeToolAndStream(
-          controller,
-          encoder,
+          track,
           "get_schedule",
           {
             scheduleId: toolContext.virtualSchedule.id,
@@ -268,8 +294,7 @@ export function testStream(
          */
 
         await streamThinking(
-          controller,
-          encoder,
+          track,
           "I found the schedule. Now I'll locate the Eat Lunch task.",
           delayMs,
         )
@@ -304,8 +329,7 @@ export function testStream(
          */
 
         const taskResult = await executeToolAndStream(
-          controller,
-          encoder,
+          track,
           "get_task",
           {
             taskId: lunchTask.id,
@@ -319,16 +343,14 @@ export function testStream(
         )
 
         await createTextStreamer(
-          controller,
-          encoder,
+          track,
           "message_delta",
           "Fake error message below.",
           delayMs,
         )
 
         await executeToolAndStream(
-          controller,
-          encoder,
+          track,
           "invalid_tool_name" as AIChatTool,
           {
             taskId: lunchTask.id,
@@ -343,8 +365,7 @@ export function testStream(
          */
 
         await streamThinking(
-          controller,
-          encoder,
+          track,
           "I found Eat Lunch. I'll propose changing its start time to 12:00 PM.",
           delayMs,
         )
@@ -363,8 +384,7 @@ export function testStream(
          */
 
         await executeToolAndStream(
-          controller,
-          encoder,
+          track,
           "modify_task",
           {
             taskId: lunchTask.id,
@@ -417,14 +437,10 @@ export function testStream(
          * -----------------------------------------------------
          */
 
-        controller.enqueue(
-          encoder.encode(
-            createSSEEvent({
-              type: "action_proposed",
-              action: pendingAction,
-            }),
-          ),
-        )
+        track({
+          type: "action_proposed",
+          action: pendingAction,
+        })
 
         /*
          * -----------------------------------------------------
@@ -436,13 +452,14 @@ export function testStream(
          * -----------------------------------------------------
          */
 
-        controller.enqueue(
-          encoder.encode(
-            createSSEEvent({
-              type: "done",
-            }),
-          ),
-        )
+        track({
+          type: "usage",
+          outputTokens: 731,
+        })
+
+        track({
+          type: "done",
+        })
 
         controller.close()
       } catch (error) {

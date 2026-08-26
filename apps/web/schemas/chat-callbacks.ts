@@ -56,6 +56,18 @@ export const AIChatStreamCallbacksSchema = z.object({
     .output(z.void())
     .optional(),
 
+  onUsage: z
+    .function()
+    .input(z.tuple([z.number()]))
+    .output(z.void())
+    .optional(),
+
+  onUsageLimitReached: z
+    .function()
+    .input(z.tuple([z.string()]))
+    .output(z.void())
+    .optional(),
+
   onComplete: z
     .function()
     .input(z.tuple([AIChatMessageSchema]))

@@ -52,6 +52,14 @@ export const AIChatStreamEventSchema = z.discriminatedUnion("type", [
     status: z.enum(["approved", "rejected"]),
   }),
   z.object({
+    type: z.literal("usage"),
+    outputTokens: z.number(),
+  }),
+  z.object({
+    type: z.literal("usage_limit_reached"),
+    message: z.string(),
+  }),
+  z.object({
     type: z.literal("done"),
   }),
   z.object({
@@ -69,6 +77,8 @@ export const AIChatStreamEventsSchema = z.enum([
   "tool_started",
   "tool_completed",
   "tool_failed",
+  "usage",
+  "usage_limit_reached",
   "done",
   "error",
 ])

@@ -37,7 +37,10 @@ function estimateTokens(bytes: number): number {
  * and maps pre-stream failures through the shared error envelope. Once
  * streaming has begun, failures travel as "error" SSE events instead.
  *
- * After the stream completes, unused quota tokens are refunded.
+ * The service layer (testStream) owns token counting and emits the
+ * `usage_limit_reached` SSE event when the reserved quota is exceeded.
+ * This route only counts bytes for refunding unused quota after the stream
+ * closes.
  */
 export default async function postChatResponse(c: Context): Promise<Response> {
   try {
@@ -64,25 +67,18 @@ export default async function postChatResponse(c: Context): Promise<Response> {
 
     console.log("Test AI request:", { message, context });
 
-    const originalStream = testStream(context, 50);
+    // Pass the reserved quota to the service so it can emit
+    // usage_limit_reached and stop the stream when the limit is hit.
+    const originalStream = testStream(context, 50, reservation.reserved);
 
-    // Wrap the stream to count output bytes, then refund unused quota
-    // Basically count bytes generated, and give back any unused quota tokens (assuming 4 bytes per token)
+    // Wrap the stream to count output bytes for refunding unused quota.
+    // Token-limit enforcement lives inside testStream.
     let tokensUsed = 0;
     const trackingStream = originalStream.pipeThrough(
       new TransformStream({
-        // Transform is called for each chunk of data, so we can count bytes to estimate token usage
         transform(chunk, controller) {
-          tokensUsed += estimateTokens(chunk.byteLength); //!TEMPORARY
+          tokensUsed += estimateTokens(chunk.byteLength);
           controller.enqueue(chunk);
-
-          //check if we have exceeded the reserved quota, and if so, throw an error to stop the stream
-          if (tokensUsed > reservation.reserved) {
-              throw new Error(
-                `Chat token usage limit reached`,
-                { cause: 'quota_exceeded' }
-              );
-            }
         },
         // Flush is called when the stream is closed, so we can refund any unused quota here
         async flush() {

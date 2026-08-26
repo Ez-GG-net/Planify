@@ -122,6 +122,14 @@ export async function generateAIChatResponse(
           )
           break
 
+        case "usage":
+          callbacks.onUsage?.(data.outputTokens)
+          break
+
+        case "usage_limit_reached":
+          callbacks.onUsageLimitReached?.(data.message)
+          break
+
         case "done":
           callbacks.onComplete?.({
             id: generateRandomIDv1(),
