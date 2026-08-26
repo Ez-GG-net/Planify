@@ -22,11 +22,11 @@ export interface QuotaLimit {
 }
 
 export const QUOTA_LIMITS: Record<QuotaType, QuotaLimit> = {
-  review_questions: { monthly: 5, perRequest: null },
-  schedule_plan: { monthly: 3, perRequest: null },
-  task_guide: { monthly: 50, perRequest: null },
-  pre_task_guide: { monthly: 24, perRequest: null },
-  chat_tokens: { monthly: 20_000, perRequest: 2_048 },
+  review_questions: { monthly: 8, perRequest: null },
+  schedule_plan: { monthly: 5, perRequest: null },
+  task_guide: { monthly: 100, perRequest: null },
+  pre_task_guide: { monthly: 30, perRequest: null },
+  chat_tokens: { monthly: 50_000, perRequest: 4_096 },
 };
 
 /** All quota types for iteration (e.g. usage summary endpoint). */
