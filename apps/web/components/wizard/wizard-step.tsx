@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useEffect, useRef, useState } from "react"
 import WizardProgress from "@/components/ui/wizard-progress"
-import { AlertTriangleIcon, ArrowLeft, ArrowRight, CalendarPlus, RotateCcw } from "lucide-react"
+import { AlertTriangleIcon, ArrowLeft, ArrowRight, CalendarPlus, LayoutList, RotateCcw } from "lucide-react"
 import {
   Field,
   FieldContent,
@@ -562,6 +562,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
   }
 
   return (
+    <>
     <Card className="mx-auto flex min-h-135 w-full max-w-xl flex-col">
       <CardHeader className="space-y-5">
         {/* App Name + draft reset */}
@@ -667,5 +668,16 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
         </Button>
       </CardFooter>
     </Card>
+
+    <Button
+      variant="outline"
+      size="lg"
+      className="fixed bottom-6 left-6 z-50"
+      onClick={() => router.push("/view/schedules")}
+    >
+      <LayoutList className="mr-1 h-4 w-4" />
+      Back to Schedules
+    </Button>
+    </>
   )
 }
