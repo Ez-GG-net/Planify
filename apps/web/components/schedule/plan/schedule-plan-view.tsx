@@ -14,6 +14,7 @@ import { AIChatPanel } from "@/components/chat/ai-chat-panel"
 import {
   AIChatPendingAction,
   AIChatUpdate,
+  PreTaskGuide,
   SchedulePlan,
   SchedulePlanTask,
 } from "@planify/types"
@@ -129,6 +130,20 @@ export default function SchedulePlanView({ plan, onPlanChange }: SchedulePlanVie
     [plan, onPlanChange]
   )
 
+  const savePreTaskGuide = useCallback(
+    async (preTaskId: string, guide: PreTaskGuide) => {
+      const nextPlan: SchedulePlan = {
+        ...plan,
+        preTasks: plan.preTasks.map((task) =>
+          task.id === preTaskId ? { ...task, preTaskGuide: guide } : task
+        ),
+      }
+
+      await onPlanChange(nextPlan)
+    },
+    [plan, onPlanChange]
+  )
+
   /*
    * Apply AI-suggested changes to a task or pre-task.
    *
@@ -216,8 +231,9 @@ export default function SchedulePlanView({ plan, onPlanChange }: SchedulePlanVie
       focusTaskId,
       planId: plan.id,
       toggleTask,
+      savePreTaskGuide,
     }),
-    [tasks, preTasks, completedIds, focusTaskId, plan.id, toggleTask]
+    [tasks, preTasks, completedIds, focusTaskId, plan.id, toggleTask, savePreTaskGuide]
   )
 
   return (

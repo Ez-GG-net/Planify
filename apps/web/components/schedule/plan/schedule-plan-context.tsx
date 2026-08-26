@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 
-import { IDv1, SchedulePlanTask } from "@planify/types"
+import { IDv1, PreTaskGuide, SchedulePlanTask } from "@planify/types"
 
 /**
  * Everything the schedule-plan subtree needs to render tasks and flip their
@@ -22,6 +22,8 @@ export interface SchedulePlanListValue {
   planId: IDv1
   /** Flips a task's completion and persists the plan. */
   toggleTask: (taskId: string) => void
+  /** Saves a generated pre-task guide to the server and persists the plan. */
+  savePreTaskGuide: (preTaskId: string, guide: PreTaskGuide) => Promise<void>
 }
 
 const SchedulePlanListContext =

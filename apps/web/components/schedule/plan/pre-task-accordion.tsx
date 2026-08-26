@@ -22,13 +22,20 @@ import { PreTaskGuide } from "@planify/types"
 import { TaskStateIndicator } from "./task-state-indicator"
 import { useSchedulePlanList } from "./schedule-plan-context"
 
+interface GuideError {
+  taskId: string
+  code?: string
+  message: string
+}
+
 export function PreTaskAccordion() {
-  const { preTasks, completedIds, toggleTask } = useSchedulePlanList()
+  const { preTasks, completedIds, toggleTask, savePreTaskGuide } =
+    useSchedulePlanList()
 
   const [openId, setOpenId] = useState<string | null>(null)
   const [guides, setGuides] = useState<Record<string, PreTaskGuide>>({})
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [errorId, setErrorId] = useState<string | null>(null)
+  const [errorState, setErrorState] = useState<GuideError | null>(null)
 
   const firstUncompletedId =
     preTasks.find((task) => !completedIds.has(task.id))?.id ?? null
@@ -37,15 +44,31 @@ export function PreTaskAccordion() {
     const task = preTasks.find((t) => t.id === taskId)
     if (!task) return
 
+    // If the guide is already persisted in the schedule, use it directly.
+    if (task.preTaskGuide) {
+      setGuides((prev) => ({ ...prev, [taskId]: task.preTaskGuide! }))
+      setErrorState(null)
+      return
+    }
+
     setLoadingId(taskId)
-    setErrorId(null)
+    setErrorState(null)
 
     generatePreTaskGuide(task)
-      .then((guide) => {
+      .then(async (guide) => {
+        // Persist to the server first, then store in local state.
+        await savePreTaskGuide(taskId, guide)
         setGuides((prev) => ({ ...prev, [taskId]: guide }))
       })
-      .catch(() => {
-        setErrorId(taskId)
+      .catch((error) => {
+        setErrorState({
+          taskId,
+          code: error instanceof Error ? (error.cause as string) : undefined,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to load the task guide.",
+        })
       })
       .finally(() => {
         setLoadingId((current) => (current === taskId ? null : current))
@@ -56,7 +79,11 @@ export function PreTaskAccordion() {
   function handleValueChange(value: string[]) {
     const nextOpenId = value[0] ?? null
     setOpenId(nextOpenId)
-    if (nextOpenId && !guides[nextOpenId] && loadingId !== nextOpenId) {
+    if (
+      nextOpenId &&
+      !guides[nextOpenId] &&
+      loadingId !== nextOpenId
+    ) {
       loadGuide(nextOpenId)
     }
   }
@@ -76,6 +103,10 @@ export function PreTaskAccordion() {
           : task.id === firstUncompletedId
             ? "active"
             : "upcoming"
+
+        const isErrorForTask = errorState?.taskId === task.id
+        const isQuotaError =
+          isErrorForTask && errorState?.code === "quota_exceeded"
 
         return (
           <AccordionItem key={task.id} value={task.id}>
@@ -120,29 +151,37 @@ export function PreTaskAccordion() {
                     <Skeleton className="h-4 w-1/2" />
                     <Skeleton className="h-4 w-2/3" />
                   </div>
-                ) : errorId === task.id ? (
-                  <div className="flex items-center gap-2 text-sm text-destructive pl-4">
-                    <span>Failed to load the task guide.</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loadGuide(task.id)}
-                    >
-                      Try again
-                    </Button>
+                ) : isErrorForTask ? (
+                  <div className="text-sm text-destructive pl-4">
+                    {isQuotaError ? (
+                      <span>{errorState.message}</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span>Failed to load the task guide.</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadGuide(task.id)}
+                        >
+                          Try again
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : guides[task.id] ? (
                   <TaskGuideContent guide={guides[task.id]} />
                 ) : null}
 
                 <div className="flex items-center justify-start border-t pt-3">
-                  <Button
-                    variant={isCompleted ? "ghost" : "outline"}
-                    size="sm"
-                    onClick={() => toggleTask(task.id)}
-                  >
-                    {isCompleted ? "Mark as incomplete" : "Mark as complete"}
-                  </Button>
+                  {(isCompleted || guides[task.id]) && (
+                    <Button
+                      variant={isCompleted ? "ghost" : "outline"}
+                      size="sm"
+                      onClick={() => toggleTask(task.id)}
+                    >
+                      {isCompleted ? "Mark as incomplete" : "Mark as complete"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </AccordionContent>
@@ -179,8 +218,6 @@ function TaskGuideContent({ guide }: { guide: PreTaskGuide }) {
           ))}
         </ol>
       )}
-
-
     </div>
   )
 }

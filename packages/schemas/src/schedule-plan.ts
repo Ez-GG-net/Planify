@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { IDv1Schema } from "./id";
-import { TaskGuideSchema } from "./task-guide";
+import { TaskGuideSchema, PreTaskGuideSchema } from "./task-guide";
 
 
 
@@ -13,6 +13,7 @@ export const SchedulePlanTaskSchema = z.object({
     estimatedDuration: z.number().optional(),
     details: z.record(z.string(), z.unknown()).optional(),
     guide: TaskGuideSchema.optional(),
+    preTaskGuide: PreTaskGuideSchema.optional(),
 });
 export const SchedulePlanSchema = z.object({
     id: IDv1Schema,
