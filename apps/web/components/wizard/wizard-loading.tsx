@@ -92,33 +92,45 @@ function WizardLoading({
   )
 }
 function WizardLoadingError({
+  errorCode,
+  errorMessage,
   onRetry,
   goBackFn,
 }: {
+  errorCode?: string | null
+  errorMessage?: string | null
   onRetry: () => void
   goBackFn: () => void
 }) {
+  const isQuota = errorCode === "quota_exceeded"
+
   return (
     <div className="flex min-h-112.5 flex-col items-center justify-center text-center">
       <CircleAlert className="mb-2 h-10 w-10 text-destructive" />
 
-      <h2 className="text-3xl font-semibold">Something went wrong</h2>
+      <h2 className="text-3xl font-semibold">
+        {isQuota ? "You've reached your limit" : "Something went wrong"}
+      </h2>
 
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        {" We couldn't generate your request."}
+        {isQuota
+          ? errorMessage
+          : "We couldn't generate your request."}
       </p>
 
-<div className="mt-3 flex justify-center gap-3">
-  <Button variant="outline" onClick={goBackFn}>
-    <ArrowLeft className="h-4 w-4" />
-    Go Back
-  </Button>
+      <div className="mt-3 flex justify-center gap-3">
+        <Button variant="outline" onClick={goBackFn}>
+          <ArrowLeft className="h-4 w-4" />
+          Go Back
+        </Button>
 
-  <Button onClick={onRetry}>
-    <RotateCw className="h-4 w-4" />
-    Retry Generation
-  </Button>
-</div>
+        {!isQuota && (
+          <Button onClick={onRetry}>
+            <RotateCw className="h-4 w-4" />
+            Retry Generation
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

@@ -39,12 +39,14 @@ import {
   saveWizardDraft,
 } from "@/lib/wizard/wizard-draft"
 import { useRouter } from "next/navigation"
+import { fetchQuotaUsage, type QuotaUsage } from "@/lib/api/quota"
+import type { ReviewQuestion, ReviewAnswer } from "@planify/types"
+import { QuotaHint } from "./quotaHint"
 
 const TOTAL_STEPS = 4
 
 export default function WizardStep({ initStepNum }: { initStepNum: number }) {
   //*IMPROVEMENTS TODO: Make the review questions regenerate on changes to the schedule in the wizard.
-  // Currently, if the user goes back and changes the schedule, the review questions are not regenerated. This can lead to a mismatch between the schedule and the review questions. We should add a check to see if the schedule has changed and regenerate the review questions if it has.
   const router = useRouter()
 
   function initialWizardState(): WizardScheduleState {
@@ -65,6 +67,12 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
   }
 
   const [wizard, setWizard] = useState<WizardScheduleState>(initialWizardState)
+  const [quota, setQuota] = useState<QuotaUsage | null>(null)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [reviewErrorCode, setReviewErrorCode] = useState<string | null>(null)
+
+  /** Saved questions/answers from before a regeneration attempt, restored on cancel. */
+  const savedReviewRef = useRef<{ questions: ReviewQuestion[]; answers: ReviewAnswer[] } | null>(null)
 
   /*
    * --------------------------------------------------------------------------
@@ -103,6 +111,20 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
 
     saveWizardDraft(wizard)
   }, [wizard])
+
+  // Fetch quota usage on mount so the wizard can show remaining counts.
+  useEffect(() => {
+    let cancelled = false
+    fetchQuotaUsage().then((data) => {
+      if (!cancelled) setQuota(data)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  /** Re-fetch quota after a mutation consumes quota. */
+  async function refreshQuota() {
+    setQuota(await fetchQuotaUsage())
+  }
 
   const {
     stepNum,
@@ -170,10 +192,9 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
         scheduleState: "success",
       }))
 
-      await       addSchedulePlan(generatedSchedulePlan)
-      // The plan exists now; its draft must not resurrect on the next
-      // visit to /new/schedule.
+      await addSchedulePlan(generatedSchedulePlan)
       clearWizardDraft()
+      
       router.push(`/view/schedule/${generatedSchedulePlan.id}`)
     } catch (_error) {
       setWizard((prev) => ({
@@ -244,12 +265,19 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
         reviewQuestions: questions,
         reviewState: "success",
       }))
+
+      // Refresh quota only when fresh questions were generated (not cached).
+      if (wizard.reviewQuestions.length === 0) {
+        void refreshQuota()
+      }
+
       onGenerationComplete()
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return
       }
-
+      setReviewError(error instanceof Error ? error.message : null)
+      setReviewErrorCode(error instanceof Error ? error.cause as string : null)
       setWizard((prev) => ({ ...prev, reviewState: "error" }))
     }
   }
@@ -258,8 +286,20 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
 
     reviewGenerationController.current = null
 
-    setWizard((prev) => ({ ...prev, reviewState: "idle" }))
-    setStep(3)
+    // Restore previous questions if this was a regeneration attempt.
+    if (savedReviewRef.current) {
+      console.log(savedReviewRef.current)
+      setWizard((prev) => ({
+        ...prev,
+        reviewQuestions: savedReviewRef.current!.questions,
+        reviewAnswers: savedReviewRef.current!.answers,
+        reviewState: "success",
+      }))
+      savedReviewRef.current = null
+    } else {
+      setWizard((prev) => ({ ...prev, reviewState: "idle" }))
+      setStep(3)
+    }
   }
   const scheduleGenerationController = useRef<AbortController | null>(null)
 
@@ -353,7 +393,11 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
       if (reviewState === "error") {
         return (
           <WizardLoadingError
-            onRetry={() =>
+            errorCode={reviewErrorCode}
+            errorMessage={reviewError}
+            onRetry={() => {
+              setReviewError(null)
+              setReviewErrorCode(null)
               createReviewQuestionsFromSchedule(
                 {
                   objective,
@@ -364,10 +408,12 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
                 },
                 () => setStep(4)
               )
-            }
-            goBackFn={() =>
+            }}
+            goBackFn={() => {
+              setReviewError(null)
+              setReviewErrorCode(null)
               setWizard((prev) => ({ ...prev, reviewState: "idle" }))
-            }
+            }}
           />
         )
       }
@@ -404,6 +450,55 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
                 reviewAnswers,
               }))
             }
+            onRegenerate={() => {
+              // Save previous questions so cancel can restore them.
+              savedReviewRef.current = {
+                questions: wizard.reviewQuestions,
+                answers: wizard.reviewAnswers,
+              }
+
+              // Clear cached questions and answers, then generate fresh ones.
+              // Must call generateReviewQuestions directly —
+              // createReviewQuestionsFromSchedule caches via the closure.
+              setWizard((prev) => ({
+                ...prev,
+                reviewQuestions: [],
+                reviewAnswers: [],
+                reviewState: "loading",
+              }))
+              setStep(3)
+              setReviewError(null)
+              setReviewErrorCode(null)
+
+              const controller = new AbortController()
+              reviewGenerationController.current = controller
+
+              const schedule: WizardSchedule = {
+                objective,
+                notesContext,
+                startDate,
+                endDate,
+                timePerDay,
+              }
+
+              generateReviewQuestions(schedule, controller.signal)
+                .then((questions) => {
+                  savedReviewRef.current = null
+                  setWizard((prev) => ({
+                    ...prev,
+                    reviewQuestions: questions,
+                    reviewState: "success",
+                  }))
+                  setStep(4)
+                  void refreshQuota()
+                })
+                .catch((error) => {
+                  if (error instanceof DOMException && error.name === "AbortError") return
+                  setReviewError(error instanceof Error ? error.message : null)
+                  setReviewErrorCode(error instanceof Error ? error.cause as string : null)
+                  setWizard((prev) => ({ ...prev, reviewState: "error" }))
+                })
+            }}
           />
         ),
       }
@@ -458,17 +553,20 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             <CardTitle className="mt-1 text-2xl">Schedule Creation</CardTitle>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            aria-label="Start over"
-            title="Start over"
-            onClick={handleStartOver}
-          >
-            <RotateCcw className="size-4" />
-          </Button>
+          <div className="flex flex-row items-center gap-1">
+            {quota && <QuotaHint quota={quota} />}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Start over"
+              title="Start over"
+              onClick={handleStartOver}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Progress */}

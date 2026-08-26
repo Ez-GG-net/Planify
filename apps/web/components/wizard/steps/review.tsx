@@ -12,6 +12,7 @@ import {
   Circle,
   Check,
   CircleDot,
+  RefreshCw,
 } from "lucide-react"
 import { ReviewAnswer, ReviewQuestion } from "@planify/types"
 
@@ -20,10 +21,12 @@ export default function WizardReviewStep({
   reviewQuestions,
   reviewAnswers,
   setReviewAnswers,
+  onRegenerate,
 }:  {
   reviewQuestions: ReviewQuestion[]
   reviewAnswers: ReviewAnswer[]
   setReviewAnswers: (reviewAnswers: ReviewAnswer[]) => void
+  onRegenerate?: () => void
 }) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
 
@@ -87,29 +90,44 @@ export default function WizardReviewStep({
     <div className="space-y-6">
       {/* Question Notes (Header Navigation) */}
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {reviewQuestions.map((q, index) => (
-          <Button
-            key={index}
-            variant={"outline"}
-            size="sm"
-            className="shrink-0"
-            aria-current={currentQuestion === index ? "true" : undefined}
-            onClick={() => setCurrentQuestion(index)}
-          >
-            {currentQuestion === index ? (
-              <CircleDot
-                className={`mr-2 h-4 w-4 ${answered[index] ? "text-primary" : "text-muted-foreground"}`}
-              />
-            ) : answered[index] ? (
-              <Check className="mr-2 h-4 w-4 text-primary" />
-            ) : (
-              <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
-            )}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+          {reviewQuestions.map((q, index) => (
+            <Button
+              key={index}
+              variant={"outline"}
+              size="sm"
+              className="shrink-0"
+              aria-current={currentQuestion === index ? "true" : undefined}
+              onClick={() => setCurrentQuestion(index)}
+            >
+              {currentQuestion === index ? (
+                <CircleDot
+                  className={`mr-2 h-4 w-4 ${answered[index] ? "text-primary" : "text-muted-foreground"}`}
+                />
+              ) : answered[index] ? (
+                <Check className="mr-2 h-4 w-4 text-primary" />
+              ) : (
+                <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
+              )}
 
-            {q.noteTitle}
+              {q.noteTitle}
+            </Button>
+          ))}
+        </div>
+
+        {onRegenerate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Regenerate questions"
+            title="Regenerate questions"
+            onClick={onRegenerate}
+          >
+            <RefreshCw className="size-4" />
           </Button>
-        ))}
+        )}
       </div>
 
       {/* Question */}
