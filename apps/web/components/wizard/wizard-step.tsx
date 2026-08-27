@@ -405,7 +405,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
           <WizardLoading
             cancelFn={cancelReviewGeneration}
             title="review questions"
-            estimatedTime="5-10 seconds"
+            estimatedTime="30-60 seconds"
           />
         )
       }
@@ -531,7 +531,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
           <WizardLoading
             cancelFn={cancelScheduleGeneration}
             title="schedule"
-            estimatedTime="30-60 seconds"
+            estimatedTime="1-2 minutes"
           />
         )
       }
