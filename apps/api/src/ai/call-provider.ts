@@ -43,7 +43,7 @@ interface AIProviderChatResponse {
 export async function callProvider(
   opts: CallProviderOptions,
 ): Promise<CallProviderResult> {
-  const url = `${config.ollama.baseUrl}/api/chat`;
+  const url = `${config.ollama.apiUrl}`;
   const stream = opts.options?.stream ?? false;
 
   let response: Response;

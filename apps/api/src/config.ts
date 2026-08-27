@@ -68,7 +68,7 @@ export const config = {
   },
 
   ollama: {
-    baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+    apiUrl: process.env.OLLAMA_API_URL ?? "http://localhost:11434/api/chat",
     model: process.env.OLLAMA_MODEL ?? "gpt-oss:20b",
   },
 
