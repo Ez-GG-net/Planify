@@ -672,7 +672,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     <Button
       variant="outline"
       size="lg"
-      className="fixed bottom-6 left-6 z-50"
+      className="fixed top-4 left-4"
       onClick={() => router.push("/view/schedules")}
     >
       <LayoutList className="mr-1 h-4 w-4" />
