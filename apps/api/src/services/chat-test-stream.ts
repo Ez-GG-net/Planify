@@ -236,225 +236,30 @@ export function testStream(
 
         const toolContext = createToolContext(context)
 
-        /*
-         * -----------------------------------------------------
-         * THINKING
-         * -----------------------------------------------------
-         */
 
         await streamThinking(
           track,
-          "I'll look through your schedule to find the Eat Lunch task.",
+          "This endpoint is not yet connected to a real model. Let me see if I can simulate a response.",
           delayMs,
         )
+        await executeToolAndStream(
+          track,
+          "endpoint_exists" as AIChatTool,
+          {},
+          toolContext,
+        )
 
-        /*
-         * -----------------------------------------------------
-         * MESSAGE
-         * -----------------------------------------------------
-         */
 
         await createTextStreamer(
           track,
           "message_delta",
-          "Let me take a look at your schedule.",
+          "Looks like this endpoint is not yet connected to a real model. Please try again later.",
           delayMs,
         )
-
-        /*
-         * -----------------------------------------------------
-         * TOOL: get_schedule
-         * -----------------------------------------------------
-         *
-         * This goes through executeToolAndStream().
-         */
-
-        const scheduleResult = await executeToolAndStream(
-          track,
-          "get_schedule",
-          {
-            scheduleId: toolContext.virtualSchedule.id,
-          },
-          toolContext,
-        )
-
-        /*
-         * scheduleResult is available to the simulated model
-         * just like an actual model would receive the result.
-         */
-        console.log(
-          "[AI simulation] Model received get_schedule result:",
-          scheduleResult,
-        )
-
-        /*
-         * -----------------------------------------------------
-         * THINKING
-         * -----------------------------------------------------
-         */
-
-        await streamThinking(
-          track,
-          "I found the schedule. Now I'll locate the Eat Lunch task.",
-          delayMs,
-        )
-
-        /*
-         * -----------------------------------------------------
-         * Find the task.
-         *
-         * In the real implementation, the model would determine
-         * the task ID from the get_schedule result and then call
-         * get_task.
-         *
-         * We hard-code the title here because this is a test
-         * model.
-         * -----------------------------------------------------
-         */
-
-        const lunchTask = toolContext.virtualSchedule.tasks.find(
-          (task) => task.title === "Eat Lunch",
-        )
-
-        if (!lunchTask) {
-          throw new Error(
-            'Test task "Eat Lunch" was not found in the schedule.',
-          )
-        }
-
-        /*
-         * -----------------------------------------------------
-         * TOOL: get_task
-         * -----------------------------------------------------
-         */
-
-        const taskResult = await executeToolAndStream(
-          track,
-          "get_task",
-          {
-            taskId: lunchTask.id,
-          },
-          toolContext,
-        )
-
-        console.log(
-          "[AI simulation] Model received get_task result:",
-          taskResult,
-        )
-
-        await createTextStreamer(
-          track,
-          "message_delta",
-          "Fake error message below.",
-          delayMs,
-        )
-
-        await executeToolAndStream(
-          track,
-          "invalid_tool_name" as AIChatTool,
-          {
-            taskId: lunchTask.id,
-          },
-          toolContext,
-        )
-
-        /*
-         * -----------------------------------------------------
-         * THINKING
-         * -----------------------------------------------------
-         */
-
-        await streamThinking(
-          track,
-          "I found Eat Lunch. I'll propose changing its start time to 12:00 PM.",
-          delayMs,
-        )
-
-        /*
-         * -----------------------------------------------------
-         * TOOL: modify_task
-         * -----------------------------------------------------
-         *
-         * IMPORTANT:
-         *
-         * modifyTask() creates a pending action.
-         *
-         * It does NOT modify virtualSchedule.
-         * -----------------------------------------------------
-         */
-
-        await executeToolAndStream(
-          track,
-          "modify_task",
-          {
-            taskId: lunchTask.id,
-            changes: {
-              details: {
-                location: {
-                  name:"Cafeteria",
-                  geolocation: "48.8566, 2.3522",
-                },
-                something: "true",
-                hello: "world",
-                resturants: [
-                  {"name": "Le Jules Verne", time: "12:30"},
-                  {"name": "other resturant", time: "20:00"},
-                ]
-              }
-            },
-          },
-          toolContext,
-        )
-
-        /*
-         * The tool should have created exactly one pending action.
-         */
-        const pendingAction =
-          toolContext.pendingActions.at(-1)
-
-        if (!pendingAction) {
-          throw new Error(
-            "modify_task did not create a pending action.",
-          )
-        }
-
-        /*
-         * -----------------------------------------------------
-         * Store the action so a future resolution endpoint can
-         * look it up server-side.
-         * -----------------------------------------------------
-         */
-
-        savePendingAction(
-          pendingAction,
-          context,
-        )
-
-        /*
-         * -----------------------------------------------------
-         * Tell the client that the model wants to perform
-         * this action.
-         * -----------------------------------------------------
-         */
-
-        track({
-          type: "action_proposed",
-          action: pendingAction,
-        })
-
-        /*
-         * -----------------------------------------------------
-         * The simulated model stops here.
-         *
-         * In the real implementation, the model would stop
-         * generating until the user approves/rejects this
-         * action.
-         * -----------------------------------------------------
-         */
 
         track({
           type: "usage",
-          outputTokens: 731,
+          outputTokens: 15, //fake number for testing
         })
 
         track({
