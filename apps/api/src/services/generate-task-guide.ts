@@ -1,70 +1,116 @@
+import { z } from "zod";
 import type { SchedulePlanTask, TaskGuide } from "@planify/types";
+import { ApiError } from "@planify/api/errors/handle-api-error";
+import { callProvider } from "@planify/api/ai/call-provider";
+import { TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 
 /**
- * Placeholder implementation preserved from the original Next.js route
- * handler: fixed French-greetings guide after an artificial delay.
- * Replaced by real AI generation in a later phase.
+ * JSON Schema passed to Ollama's `format` parameter. Steps intentionally
+ * omit their numeric `id` — server assigns ids after validation.
  */
+const TASK_GUIDE_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    description: { type: "string" },
+    objective: { type: "string" },
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: { type: "string" },
+          estimatedDuration: { type: "number" },
+        },
+        required: ["title", "estimatedDuration"],
+      },
+    },
+  },
+  required: ["description", "objective", "steps"],
+} as const;
+
+interface OllamaChatResponse {
+  message: { role: string; content: string };
+  done: boolean;
+  error?: string;
+}
+
+/**
+ * Validates the model output with a custom Zod schema. Task guide steps should arrive without their numeric `id`;
+ */
+const TaskGuideInputSchema = z.object({
+  description: z.string(),
+  objective: z.string(),
+  steps: z
+    .array(
+      z.object({
+        title: z.string(),
+        content: z.string().optional(),
+        estimatedDuration: z.number(),
+      }),
+    )
+    .min(1),
+});
+
+/** Generates a step by step task guide for a given schedule task using the AI provider. */
 export async function generateTaskGuide(
   task: SchedulePlanTask,
+  signal?: AbortSignal,
 ): Promise<TaskGuide> {
-  console.log("Received schedule:", task);
+  console.log("[generate] task-guide request:", task);
 
-  //fake waiting time
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const { response } = await callProvider({
+    systemMessage: TASK_GUIDE_SYSTEM_PROMPT,
+    userMessage: JSON.stringify(task),
+    schema: TASK_GUIDE_JSON_SCHEMA,
+    signal,
+    options: { temperature: 0.7 },
+  });
 
-  const PLACEHOLDER_TASK_GUIDE = {
-    description: "Learn basic French greetings",
-    objective:
-      "By the end of this task, you should be able to introduce yourself and use three basic greetings.",
-    steps: [
-      {
-        title: "Learn 3 basic greetings",
-        content: `### Bonjour
+  const data = (await response.json()) as OllamaChatResponse;
 
-**Bonjour** means "hello" and can also be used for good morning or good afternoon.
+  let parsed: unknown;
 
-### Bonsoir
+  try {
+    parsed = JSON.parse(data.message.content);
+  } catch {
+    console.error(
+      "[generate] Failed to parse AI response as JSON:",
+      data.message.content,
+    );
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 
-**Bonsoir** means "good evening."
+  let guide: z.infer<typeof TaskGuideInputSchema>;
 
-### Salut
+  try {
+    guide = TaskGuideInputSchema.parse(parsed);
+  } catch {
+    console.error(
+      "[generate] AI response failed Zod validation:",
+      JSON.stringify(parsed),
+    );
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 
-**Salut** means "hi" and is more casual.
-
-> Use **bonjour** when you're unsure which greeting to use.
-     `,
-        estimatedDuration: 5,
-      },
-      {
-        title: "Practice introducing yourself",
-        content: `
-Learn this basic pattern:
-
-\`\`\`
-Bonjour, je m'appelle [name].
-\`\`\`
-
-This means:
-
-> Hello, my name is [name].
-
-Try saying it out loud several times to become comfortable saying it in person.
-      `,
-        estimatedDuration: 10,
-      },
-    ],
-  };
-
-  //adding unique ID for each step
-  const updatedSteps = PLACEHOLDER_TASK_GUIDE.steps.map((step, index) => ({
-    id: index,
-    ...step,
-  }));
-
+  // Assign sequential numeric ids to each step.
   const taskGuide: TaskGuide = {
-    ...PLACEHOLDER_TASK_GUIDE,
-    steps: updatedSteps,
+    description: guide.description,
+    objective: guide.objective,
+    steps: guide.steps.map((step, index) => ({
+      id: index,
+      title: step.title,
+      content: step.content,
+      estimatedDuration: step.estimatedDuration,
+    })),
   };
 
   return taskGuide;

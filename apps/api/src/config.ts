@@ -66,4 +66,22 @@ export const config = {
      */
     trustedOrigins: parseOrigins(process.env.WEB_ORIGINS ?? "http://localhost:3000"),
   },
+
+  ollama: {
+    baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+    model: process.env.OLLAMA_MODEL ?? "gpt-oss:20b",
+  },
+
+  /**
+   * AI generation concurrency. Ollama serves one request at a time on the
+   * local GPU, so all generation endpoints share a single FIFO queue. The
+   * queue has a maximum length; requests beyond it are rejected immediately.
+   */
+  ai: {
+    maxConcurrentGenerations: Number(
+      process.env.AI_MAX_CONCURRENT_GENERATIONS ?? 1,
+    ),
+    /** Maximum number of requests that can wait in the queue at once. */
+    maxQueueLength: Number(process.env.AI_MAX_QUEUE_LENGTH ?? 3),
+  },
 } as const;

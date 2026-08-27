@@ -22,7 +22,7 @@ export default async function postSchedule(c: Context): Promise<Response> {
 
     const schedule = ScheduleSchema.parse(await c.req.json());
 
-    const plan = await generateSchedulePlan(schedule);
+    const plan = await generateSchedulePlan(schedule, c.req.raw.signal);
 
     await quota.reserve(userId, "schedule_plan", 1);
 

@@ -30,7 +30,7 @@ export default async function postReviewQuestions(
       await c.req.json(),
     );
 
-    const questions = await generateReviewQuestions(schedule);
+    const questions = await generateReviewQuestions(schedule, c.req.raw.signal);
 
     // Reserve quota only after successful generation.
     await quota.reserve(userId, "review_questions", 1);

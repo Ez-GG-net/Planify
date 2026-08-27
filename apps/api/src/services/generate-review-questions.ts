@@ -1,33 +1,78 @@
+import { ReviewQuestionSchema } from "@planify/schemas";
 import type { ReviewQuestion, WizardSchedule } from "@planify/types";
+import { ApiError } from "@planify/api/errors/handle-api-error";
+import { callProvider } from "@planify/api/ai/call-provider";
+import { REVIEW_QUESTIONS_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 
 /**
- * Placeholder implementation preserved from the original Next.js route
- * handler: fixed question set after an artificial delay. Replaced by real
- * AI generation in a later phase.
+ * JSON Schema passed to Ollama's `format` parameter to constrain output
+ * to an array of ReviewQuestion objects.
  */
+const REVIEW_QUESTIONS_JSON_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      noteTitle: { type: "string" },
+      question: { type: "string" },
+      choices: { type: "array", items: { type: "string" } },
+    },
+    required: ["noteTitle", "question", "choices"],
+  },
+} as const;
+
+interface OllamaChatResponse {
+  message: { role: string; content: string };
+  done: boolean;
+  done_reason?: string;
+  error?: string;
+}
+
+/** Generates review questions for a given WizardSchedule using the AI provider. */
 export async function generateReviewQuestions(
   schedule: WizardSchedule,
+  signal?: AbortSignal,
 ): Promise<ReviewQuestion[]> {
   console.log("[generate] review-questions request:", schedule);
 
-  // Fake waiting time, matching the previous handler's behavior.
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const { response } = await callProvider({
+    systemMessage: REVIEW_QUESTIONS_SYSTEM_PROMPT,
+    userMessage: JSON.stringify(schedule),
+    schema: REVIEW_QUESTIONS_JSON_SCHEMA,
+    signal,
+    options: { temperature: 0.7 },
+  });
 
-  return [
-    {
-      question: "Where are you planning to go in France",
-      noteTitle: "Places user wants to go",
-      choices: ["Paris", "Bordeaux", "Nice", "French Riviera"],
-    },
-    {
-      question: "What is your budget?",
-      noteTitle: "General Budget",
-      choices: ["500$", "1000$", "2000$", "4000$"],
-    },
-    {
-      question: "Where do you prefer to eat?",
-      noteTitle: "Breakfast Location Preference",
-      choices: ["At the hotel", "At a resturant", "Ordering fast food"],
-    },
-  ];
+  const data = (await response.json()) as OllamaChatResponse;
+
+  // Parse and validate the JSON content from the model.
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(data.message.content);
+  } catch {
+    console.error(
+      "[generate] Failed to parse AI response as JSON:",
+      data.message.content,
+    );
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
+
+  try {
+    return ReviewQuestionSchema.array().parse(parsed);
+  } catch {
+    console.error(
+      "[generate] AI response failed Zod validation:",
+      JSON.stringify(parsed),
+    );
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 }

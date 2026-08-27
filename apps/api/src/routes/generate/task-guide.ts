@@ -22,7 +22,7 @@ export default async function postTaskGuide(c: Context): Promise<Response> {
 
     const task = SchedulePlanTaskSchema.parse(await c.req.json());
 
-    const guide = await generateTaskGuide(task);
+    const guide = await generateTaskGuide(task, c.req.raw.signal);
 
     await quota.reserve(userId, "task_guide", 1);
 
