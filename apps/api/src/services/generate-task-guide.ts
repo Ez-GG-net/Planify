@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { SchedulePlanTask, TaskGuide } from "@planify/types";
 import { ApiError } from "@planify/api/errors/handle-api-error";
-import { callProvider } from "@planify/api/ai/call-provider";
+import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 
 /**
@@ -28,12 +28,6 @@ const TASK_GUIDE_JSON_SCHEMA = {
   },
   required: ["description", "objective", "steps"],
 } as const;
-
-interface OllamaChatResponse {
-  message: { role: string; content: string };
-  done: boolean;
-  error?: string;
-}
 
 /**
  * Validates the model output with a custom Zod schema. Task guide steps should arrive without their numeric `id`;
@@ -67,7 +61,16 @@ export async function generateTaskGuide(
     options: { temperature: 0.7 },
   });
 
-  const data = (await response.json()) as OllamaChatResponse;
+  const data = (await response.json()) as AIProviderChatResponse;
+
+  if (!data.message || !data.message.content) {
+    console.error("[generate] AI response missing message content:", data);
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 
   let parsed: unknown;
 

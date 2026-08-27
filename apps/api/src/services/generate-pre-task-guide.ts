@@ -1,7 +1,7 @@
 import { PreTaskGuideSchema } from "@planify/schemas";
 import type { PreTaskGuide, SchedulePlanTask } from "@planify/types";
 import { ApiError } from "@planify/api/errors/handle-api-error";
-import { callProvider } from "@planify/api/ai/call-provider";
+import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { PRE_TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 
 /**
@@ -27,12 +27,6 @@ const PRE_TASK_GUIDE_JSON_SCHEMA = {
   required: ["description", "steps"],
 } as const;
 
-interface OllamaChatResponse {
-  message: { role: string; content: string };
-  done: boolean;
-  error?: string;
-}
-
 /**
  * Generates a pre-task guide for a given schedule pre-task using the AI provider
  */
@@ -50,7 +44,16 @@ export async function generatePreTaskGuide(
     options: { temperature: 0.7 },
   });
 
-  const data = (await response.json()) as OllamaChatResponse;
+  const data = (await response.json()) as AIProviderChatResponse;
+
+  if (!data.message || !data.message.content) {
+    console.error("[generate] AI response missing message content:", data);
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 
   let parsed: unknown;
 

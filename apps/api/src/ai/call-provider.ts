@@ -28,7 +28,7 @@ export interface CallProviderResult {
   stream?: ReadableStream<Uint8Array>;
 }
 
-interface AIProviderChatResponse {
+export interface AIProviderChatResponse {
   message?: { role: string; content: string };
   done: boolean;
   done_reason?: string;

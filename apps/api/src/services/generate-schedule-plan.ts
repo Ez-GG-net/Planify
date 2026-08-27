@@ -5,7 +5,7 @@ import {
   type SchedulePlan,
 } from "@planify/types";
 import { ApiError } from "@planify/api/errors/handle-api-error";
-import { callProvider } from "@planify/api/ai/call-provider";
+import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { SCHEDULE_PLAN_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 
 /**
@@ -38,12 +38,6 @@ const SCHEDULE_PLAN_JSON_SCHEMA = {
   required: ["title", "startDate", "endDate", "preTasks", "tasks"],
 } as const;
 
-interface OllamaChatResponse {
-  message: { role: string; content: string };
-  done: boolean;
-  error?: string;
-}
-
 /** Generates a schedule plan for a given Schedule (from the wizard) using the AI provider. */
 export async function generateSchedulePlan(
   input: Schedule,
@@ -59,7 +53,16 @@ export async function generateSchedulePlan(
     options: { temperature: 0.7 },
   });
 
-  const data = (await response.json()) as OllamaChatResponse;
+  const data = (await response.json()) as AIProviderChatResponse;
+
+  if (!data.message || !data.message.content) {
+    console.error("[generate] AI response missing message content:", data);
+    throw new ApiError(
+      502,
+      "ai_error",
+      "The AI returned an invalid response. Please try again.",
+    );
+  }
 
   let parsed: unknown;
 
