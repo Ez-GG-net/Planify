@@ -474,8 +474,8 @@ export default function TaskGuidePage() {
             <Button
               variant={task.completedAt ? "outline" : "default"}
               disabled={!task.completedAt && !guide.steps.every((s) => s.completedAt)}
-              onClick={() => {
-                toggleTaskCompletion()
+              onClick={async () => {
+                await toggleTaskCompletion()
                 router.push(`/view/schedule/${plan.id}`)
               }}
             >
