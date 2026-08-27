@@ -183,7 +183,7 @@ export default function WizardReviewStep({
                     value={index.toString()}
                   />
 
-                  <span>
+                  <span className="text-sm">
                     {String.fromCharCode(65 + index)}) {choice}
                   </span>
                 </Label>
