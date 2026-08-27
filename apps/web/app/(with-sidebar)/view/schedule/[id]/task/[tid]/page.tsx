@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ChevronLeft } from "lucide-react"
+import { Check, ChevronLeft } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getScheduleRepository } from "@/database"
 import {
@@ -62,9 +63,11 @@ export default function TaskGuidePage() {
   const [guide, setGuide] = useState<TaskGuide | null>(null)
 
   const [loadingGuide, setLoadingGuide] = useState(false)
-  const [guideError, setGuideError] = useState<string | null>(null)
+  const [guideError, setGuideError] = useState<{ message: string; code?: string } | null>(null)
   const [guideRequestId, setGuideRequestId] = useState(0)
   const [currentStepNum, setCurrentStepNum] = useState(0)
+
+  const router = useRouter()
 
   /*
    * Load the schedule from localStorage after hydration.
@@ -168,9 +171,13 @@ export default function TaskGuidePage() {
         console.error("Failed to generate task guide:", error)
 
         if (!cancelled) {
-          setGuideError(
-            "We couldn't generate a guide for this task. Please try again."
-          )
+          setGuideError({
+            message:
+              error instanceof Error
+                ? error.message
+                : "We couldn't generate a guide for this task. Please try again.",
+            code: error instanceof Error ? (error.cause as string) : undefined,
+          })
         }
       } finally {
         if (!cancelled) {
@@ -242,6 +249,42 @@ export default function TaskGuidePage() {
 
     await persistPlan(nextPlan)
   }
+
+  /*
+   * Toggle the task's own completedAt — independent of guide step completion.
+   * Only available when a guide has been generated.
+   */
+  async function toggleTaskCompletion() {
+    if (plan == null || task == null) {
+      return
+    }
+
+    const completedAt = task.completedAt ? undefined : new Date().toISOString()
+
+    const nextPlan: SchedulePlan = {
+      ...plan,
+
+      tasks: plan.tasks.map((currentTask) =>
+        currentTask.id === task.id
+          ? { ...currentTask, completedAt }
+          : currentTask
+      ),
+
+      preTasks: plan.preTasks.map((currentTask) =>
+        currentTask.id === task.id
+          ? { ...currentTask, completedAt }
+          : currentTask
+      ),
+    }
+
+    setPlan(nextPlan)
+    setTask((currentTask) =>
+      currentTask == null ? null : { ...currentTask, completedAt }
+    )
+
+    await persistPlan(nextPlan)
+  }
+
   /*
    * Apply AI-suggested changes to a task or pre-task.
    *
@@ -395,19 +438,23 @@ export default function TaskGuidePage() {
           <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-5">
             <h2 className="font-medium">Unable to generate guide</h2>
 
-            <p className="mt-1 text-sm text-muted-foreground">{guideError}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {guideError.message}
+            </p>
 
-            <button
-              type="button"
-              className="mt-4 text-sm font-medium underline underline-offset-4"
-              onClick={() => {
-                setGuide(null)
-                setGuideError(null)
-                setGuideRequestId((id) => id + 1)
-              }}
-            >
-              Try again
-            </button>
+            {guideError.code !== "quota_exceeded" && (
+              <button
+                type="button"
+                className="mt-4 text-sm font-medium underline underline-offset-4"
+                onClick={() => {
+                  setGuide(null)
+                  setGuideError(null)
+                  setGuideRequestId((id) => id + 1)
+                }}
+              >
+                Try again
+              </button>
+            )}
           </div>
         )}
 
@@ -419,6 +466,29 @@ export default function TaskGuidePage() {
             onToggleStep={toggleGuideStep}
             onStepChange={setCurrentStepNum}
           />
+        )}
+
+        {/* Mark task as complete — only shown when a guide exists */}
+        {guide != null && !loadingGuide && (
+          <div className="mt-6">
+            <Button
+              variant={task.completedAt ? "outline" : "default"}
+              disabled={!task.completedAt && !guide.steps.every((s) => s.completedAt)}
+              onClick={() => {
+                toggleTaskCompletion()
+                router.push(`/view/schedule/${plan.id}`)
+              }}
+            >
+              {task.completedAt ? (
+                <>
+                  <Check className="size-4" />
+                  Completed
+                </>
+              ) : (
+                "Mark as complete"
+              )}
+            </Button>
+          </div>
         )}
       </main>
 
