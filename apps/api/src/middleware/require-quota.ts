@@ -27,14 +27,13 @@ export interface QuotaEnv {
  */
 export function requireQuota(
   type: QuotaType,
-  amount?: number,
 ): MiddlewareHandler<AuthEnv & QuotaEnv> {
   const limit = QUOTA_LIMITS[type];
 
   // The reserved amount is the requested amount
   // If none is provided, it defaults to the per-request limit
   // If no limit per request is defined, it defaults to 1.
-  const reserveAmount = amount ?? (limit.perRequest ?? 1);
+  const reserveAmount = limit.perRequest ?? 1;
 
   if (reserveAmount <= 0) {
     throw new Error(
@@ -59,7 +58,7 @@ export function requireQuota(
         `Monthly ${type} limit reached.`,
       );
     }
-
+    
     // Reserve the clamped amount of quota for this request
     const reserved = await quota.reserve(userId, type, clamped);
 

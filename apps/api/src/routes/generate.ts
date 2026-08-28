@@ -22,4 +22,4 @@ export const generateRoutes = new Hono<AuthEnv & QuotaEnv>()
   .post("/schedule", postSchedule)
   .post("/task-guide", postTaskGuide)
   .post("/pre-task-guide", postPreTaskGuide)
-  .post("/chat-response", requireQuota("chat_tokens", 2_048), postChatResponse);
+  .post("/chat-response", requireQuota("chat_tokens"), postChatResponse);
