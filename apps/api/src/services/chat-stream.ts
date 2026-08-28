@@ -68,6 +68,7 @@ function buildSystemPrompt(context: AIChatUserMessageContext): string {
     }
   }
 
+  // FAQ: This is not its own seperate markdown file because it's a dynamic system prompt
   const target =
     context.entityType === "pre-task"
       ? "the preparation (pre-task) list"
