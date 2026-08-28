@@ -7,36 +7,12 @@ import {
 import { ApiError } from "@planify/api/errors/handle-api-error";
 import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { SCHEDULE_PLAN_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
+import { SCHEDULE_PLAN_JSON_SCHEMA } from "@planify/api/ai/model-output-schema";
 
 /**
  * JSON Schema passed to Ollama's `format` parameter to constrain output.
  * The plan's top-level `id` is omitted — the server assigns a UUIDv7 id.
  */
-const SCHEDULE_PLAN_JSON_SCHEMA = {
-  type: "object",
-  properties: {
-    title: { type: "string" },
-    startDate: { type: "string" },
-    endDate: { type: "string" },
-    preTasks: { type: "array", items: { type: "object" } },
-    tasks: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          title: { type: "string" },
-          date: { type: "string" },
-          startTime: { type: "number" },
-          estimatedDuration: { type: "number" },
-          details: { type: ["object", "null"] },
-        },
-        required: ["id", "title"],
-      },
-    },
-  },
-  required: ["title", "startDate", "endDate", "preTasks", "tasks"],
-} as const;
 
 /** Generates a schedule plan for a given Schedule (from the wizard) using the AI provider. */
 export async function generateSchedulePlan(

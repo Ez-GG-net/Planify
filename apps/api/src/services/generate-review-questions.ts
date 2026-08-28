@@ -3,23 +3,12 @@ import type { ReviewQuestion, WizardSchedule } from "@planify/types";
 import { ApiError } from "@planify/api/errors/handle-api-error";
 import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { REVIEW_QUESTIONS_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
+import { REVIEW_QUESTIONS_JSON_SCHEMA } from "@planify/api/ai/model-output-schema";
 
 /**
  * JSON Schema passed to Ollama's `format` parameter to constrain output
  * to an array of ReviewQuestion objects.
  */
-const REVIEW_QUESTIONS_JSON_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    properties: {
-      noteTitle: { type: "string" },
-      question: { type: "string" },
-      choices: { type: "array", items: { type: "string" } },
-    },
-    required: ["noteTitle", "question", "choices"],
-  },
-} as const;
 
 /** Generates review questions for a given WizardSchedule using the AI provider. */
 export async function generateReviewQuestions(

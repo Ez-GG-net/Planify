@@ -3,31 +3,12 @@ import type { SchedulePlanTask, TaskGuide } from "@planify/types";
 import { ApiError } from "@planify/api/errors/handle-api-error";
 import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
+import { TASK_GUIDE_JSON_SCHEMA } from "@planify/api/ai/model-output-schema";
 
 /**
  * JSON Schema passed to Ollama's `format` parameter. Steps intentionally
  * omit their numeric `id` — server assigns ids after validation.
  */
-const TASK_GUIDE_JSON_SCHEMA = {
-  type: "object",
-  properties: {
-    description: { type: "string" },
-    objective: { type: "string" },
-    steps: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          content: { type: "string" },
-          estimatedDuration: { type: "number" },
-        },
-        required: ["title", "estimatedDuration"],
-      },
-    },
-  },
-  required: ["description", "objective", "steps"],
-} as const;
 
 /**
  * Validates the model output with a custom Zod schema. Task guide steps should arrive without their numeric `id`;
