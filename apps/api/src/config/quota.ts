@@ -26,7 +26,7 @@ export const QUOTA_LIMITS: Record<QuotaType, QuotaLimit> = {
   schedule_plan: { monthly: 5, perRequest: null },
   task_guide: { monthly: 100, perRequest: null },
   pre_task_guide: { monthly: 30, perRequest: null },
-  chat_tokens: { monthly: 50_000, perRequest: 4_096 },
+  chat_tokens: { monthly: 250_000, perRequest: 50_000 },
 };
 
 /** All quota types for iteration (e.g. usage summary endpoint). */
