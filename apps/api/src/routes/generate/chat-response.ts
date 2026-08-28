@@ -63,7 +63,6 @@ export default async function postChatResponse(c: Context): Promise<Response> {
     // Get the user ID from the context
     const userId = c.get("user").id;
 
-    console.log("Test AI request:", { message, context });
 
     // Pass the reserved quota to the service so it can emit
     // usage_limit_reached and stop the stream when the limit is hit.

@@ -194,7 +194,6 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     try {
       const generatedSchedulePlan = await generateSchedulePlan(schedule)
 
-      console.log(generatedSchedulePlan)
 
       setWizard((prev) => ({
         ...prev,
@@ -297,7 +296,6 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
 
     // Restore previous questions if this was a regeneration attempt.
     if (savedReviewRef.current) {
-      console.log(savedReviewRef.current)
       setWizard((prev) => ({
         ...prev,
         reviewQuestions: savedReviewRef.current!.questions,

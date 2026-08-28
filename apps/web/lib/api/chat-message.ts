@@ -73,7 +73,6 @@ export async function generateAIChatResponse(
         json,
       ) as AIChatStreamEvent
 
-      console.log(data)
 
       switch (data.type) {
         case "thinking_delta":
