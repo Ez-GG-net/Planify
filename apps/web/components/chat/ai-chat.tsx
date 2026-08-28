@@ -231,55 +231,68 @@ export function AIChat({
     });
 
     try {
-      const aiResponse = await generateAIChatResponse(userMessage, context, {
-        onText: (chunk) => appendAssistantContent("message", chunk),
+      // Give the model the full live conversation so it can refer back to
+      // earlier turns of this session. `messages` here is the state captured
+      // before this turn's user/assistant messages were added, so it holds
+      // exactly the prior history — the current `userMessage` is sent as the
+      // final message.
+      const requestContext: AIChatUserMessageContext = {
+        ...context,
+        previousMessages: messages,
+      };
 
-        onThinking: (chunk) => appendAssistantContent("thinking", chunk),
+      const aiResponse = await generateAIChatResponse(
+        userMessage,
+        requestContext,
+        {
+          onText: (chunk) => appendAssistantContent("message", chunk),
 
-        onThinkingFinished: (durationSeconds) => {
-          markThinkingFinished(durationSeconds);
+          onThinking: (chunk) => appendAssistantContent("thinking", chunk),
+
+          onThinkingFinished: (durationSeconds) => {
+            markThinkingFinished(durationSeconds);
+          },
+
+          onToolStarted: (toolCallId, tool) => {
+            addToolStarted(toolCallId, tool);
+          },
+
+          onToolCompleted: (toolCallId, tool, statusText) => {
+            setToolStatus(toolCallId, "completed", statusText);
+          },
+          onToolFailed: (toolCallId, tool, statusText) => {
+            console.error(`Tool failed: ${tool} (call ID: ${toolCallId})`);
+            setToolStatus(toolCallId, "failed", statusText);
+          },
+
+          onAction: (action) => {
+            addPendingAction(action);
+            // Snapshot the affected values now — this is the only moment the
+            // plan is guaranteed to be in the pre-change state.
+            appendAssistantPart({
+              type: "action",
+              action,
+              before: captureActionBefore(action, context),
+            });
+          },
+
+          onActionResolved: (actionId, status) => {
+            resolvePendingAction(actionId, status);
+          },
+
+          onUsage: (outputTokens) => {
+            setTokensUsed((prev) => prev + outputTokens);
+          },
+
+          onUsageLimitReached: (message) => {
+            const resetLabel = getNextResetDateLabel();
+            toast.warning(message, {
+              description: `Your limit resets on ${resetLabel}`,
+              duration: 10_000,
+            });
+          },
         },
-
-        onToolStarted: (toolCallId, tool) => {
-          addToolStarted(toolCallId, tool);
-        },
-
-        onToolCompleted: (toolCallId, tool, statusText) => {
-          setToolStatus(toolCallId, "completed", statusText);
-        },
-        onToolFailed: (toolCallId, tool, statusText) => {
-          console.error(`Tool failed: ${tool} (call ID: ${toolCallId})`);
-          setToolStatus(toolCallId, "failed", statusText);
-        },
-
-        onAction: (action) => {
-          addPendingAction(action);
-          // Snapshot the affected values now — this is the only moment the
-          // plan is guaranteed to be in the pre-change state.
-          appendAssistantPart({
-            type: "action",
-            action,
-            before: captureActionBefore(action, context),
-          });
-        },
-
-        onActionResolved: (actionId, status) => {
-          resolvePendingAction(actionId, status);
-        },
-
-        onUsage: (outputTokens) => {
-          setTokensUsed((prev) => prev + outputTokens);
-        },
-
-        onUsageLimitReached: (message) => {
-          const resetLabel = getNextResetDateLabel();
-          toast.warning(message, {
-            description: `Your limit resets on ${resetLabel}`,
-            duration: 10_000,
-          });
-        },
-      });
-
+      );
       updateAssistantMessage((message) => ({
         ...message,
         content: aiResponse.content,

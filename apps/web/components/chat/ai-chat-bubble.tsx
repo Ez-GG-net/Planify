@@ -266,6 +266,7 @@ export default function AIChatMessageBubble({
       )
     })
   }
+  if (!isUser && !parts?.length) return
 
   return (
     <div
@@ -280,7 +281,7 @@ export default function AIChatMessageBubble({
           isUser ? "bg-primary text-primary-foreground" : "bg-muted"
         }`}
       >
-        {isUser || !(parts && parts.length > 0) ? (
+        {isUser ? (
           message.content
         ) : (
           <div className="space-y-3">{renderedParts}</div>
