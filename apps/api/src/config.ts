@@ -44,14 +44,18 @@ export const config = {
    * Browser origins allowed to call this API. Comma-separated in env;
    * never use "*" for an authenticated API.
    */
-  allowedOrigins: parseOrigins(process.env.WEB_ORIGINS ?? "http://localhost:3000"),
+  allowedOrigins: parseOrigins(
+    process.env.WEB_ORIGINS ?? "http://localhost:3000",
+  ),
 
   /** Postgres connection string for Drizzle/Better Auth. */
   databaseUrl: resolveDatabaseUrl(),
 
   auth: {
     /** Public URL of this API; Better Auth serves /auth under it. */
-    baseUrl: process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? 3001}`,
+    baseUrl:
+      process.env.BETTER_AUTH_URL ??
+      `http://localhost:${process.env.PORT ?? 3001}`,
     /** Public URL of the web client; Better Auth redirects to it after sign-in. */
     webUrl: process.env.BETTER_AUTH_WEB_URL ?? "http://localhost:3000",
     secret: process.env.BETTER_AUTH_SECRET ?? "",
@@ -64,12 +68,20 @@ export const config = {
      * Mirrors the CORS allowlist; Better Auth checks these on OAuth
      * callbacks and redirect URLs.
      */
-    trustedOrigins: parseOrigins(process.env.WEB_ORIGINS ?? "http://localhost:3000"),
+    trustedOrigins: parseOrigins(
+      process.env.WEB_ORIGINS ?? "http://localhost:3000",
+    ),
   },
 
   ollama: {
     apiUrl: process.env.OLLAMA_API_URL ?? "http://localhost:11434/api/chat",
     model: process.env.OLLAMA_MODEL ?? "gpt-oss:20b",
+    /**
+     * Model used by the interactive assistant (chat). Kept independent from
+     * `model` so the task/tool generation endpoints and the chat can run
+     * different models if desired.
+     */
+    chatModel: process.env.OLLAMA_CHAT_MODEL ?? "gpt-oss:20b",
   },
 
   /**

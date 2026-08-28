@@ -5,7 +5,7 @@ import {
   AIChatUserMessageSchema,
 } from "@planify/schemas";
 import { handleApiError } from "@planify/api/errors/handle-api-error";
-import { testStream } from "@planify/api/services/chat-test-stream";
+import { chatStream } from "@planify/api/services/chat-stream";
 import { quota } from "@planify/api/services/quota-service";
 import { QuotaType } from "@planify/api/config/quota";
 
@@ -57,9 +57,7 @@ export default async function postChatResponse(c: Context): Promise<Response> {
     }
 
     if (reservation.reserved <= 0) {
-      throw new Error(
-        `Invalid reserved quota amount`,
-      );
+      throw new Error(`Invalid reserved quota amount`);
     }
 
     // Get the user ID from the context
@@ -69,10 +67,15 @@ export default async function postChatResponse(c: Context): Promise<Response> {
 
     // Pass the reserved quota to the service so it can emit
     // usage_limit_reached and stop the stream when the limit is hit.
-    const originalStream = testStream(context, 50, reservation.reserved);
+    const originalStream = chatStream(
+      context,
+      message,
+      reservation.reserved,
+      c.req.raw.signal,
+    );
 
     // Wrap the stream to count output bytes for refunding unused quota.
-    // Token-limit enforcement lives inside testStream.
+    // Token-limit enforcement lives inside chatStream.
     let tokensUsed = 0;
     const trackingStream = originalStream.pipeThrough(
       new TransformStream({

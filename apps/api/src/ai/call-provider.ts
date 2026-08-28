@@ -1,10 +1,18 @@
 import { config } from "@planify/api/config";
 import { ApiError } from "@planify/api/errors/handle-api-error";
 import { withGenerationSlot } from "@planify/api/ai/concurrency";
+import type { OllamaChatMessage, OllamaToolFunction } from "./ollama-tools";
 
 export interface CallProviderOptions {
   systemMessage: string;
   userMessage: string;
+  /**
+   * Messages to insert between the system and user messages (chat history
+   * plus any assistant/tool messages accumulated across prior agent rounds).
+   */
+  previousMessages?: OllamaChatMessage[];
+  /** Ollama `tools` definitions, enabling native model tool-calling. */
+  tools?: OllamaToolFunction[];
   /** JSON Schema passed to Ollama's `format` to constrain output. */
   schema?: object;
   /** A signal to abort the request. */
@@ -16,6 +24,13 @@ export interface CallProviderOptions {
     temperature?: number;
     /** Model name. Defaults to config.ollama.model. */
     model?: string;
+    /**
+     * Whether to acquire a generation slot for this request. Defaults to
+     * true. Set false when the caller already holds a slot (e.g. the chat
+     * agent loop holds one slot across all its tool rounds), so the request
+     * does not re-enter the queue.
+     */
+    acquireSlot?: boolean;
   };
 }
 
@@ -48,28 +63,36 @@ export async function callProvider(
 
   let response: Response;
 
+  // Builds the conversation for the request. Optional prior messages are
+  // inserted between the system and the current user message.
+  const messages: OllamaChatMessage[] = [
+    { role: "system", content: opts.systemMessage },
+    ...(opts.previousMessages ?? []),
+    { role: "user", content: opts.userMessage },
+  ];
+
+  const doFetch = () =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: opts.signal,
+      body: JSON.stringify({
+        model: opts.options?.model ?? config.ollama.model,
+        messages,
+        tools: opts.tools,
+        stream,
+        format: opts.schema,
+        options: { temperature: opts.options?.temperature ?? 0.5 },
+      }),
+    });
+
   try {
-    // Gets the response of adding a function to the generation queue, which will run the function when the slot(s) are available. (basically a queue system)
-    response = await withGenerationSlot(
-      () =>
-        // Calls the provider and returns the result.
-        fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: opts.signal,
-          body: JSON.stringify({
-            model: opts.options?.model ?? config.ollama.model,
-            messages: [
-              { role: "system", content: opts.systemMessage },
-              { role: "user", content: opts.userMessage },
-            ],
-            stream,
-            format: opts.schema,
-            options: { temperature: opts.options?.temperature ?? 0.5 },
-          }),
-        }),
-      opts.signal,
-    );
+    // Acquire a generation slot unless the caller already holds one (see
+    // the chat agent loop, which keeps a single slot across its rounds).
+    response =
+      opts.options?.acquireSlot === false
+        ? await doFetch()
+        : await withGenerationSlot(doFetch, opts.signal);
   } catch (error) {
     // AbortError means the client disconnected or the request was cancelled
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -100,7 +123,7 @@ export async function callProvider(
     );
   }
 
-  // Streaming: return the raw NDJSON stream untouched. 
+  // Streaming: return the raw NDJSON stream untouched.
   // Token usage arrives on the final `done: true` chunk (from `eval_count`)
   if (stream) {
     if (!response.body) {

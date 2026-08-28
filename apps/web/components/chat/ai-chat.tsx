@@ -1,22 +1,23 @@
-﻿"use client"
+﻿"use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   Bot,
   Check,
   ChevronDown,
+  LoaderCircle,
   RotateCw,
   Send,
   Trash2,
   TriangleAlert,
   User,
   X,
-} from "lucide-react"
-import { toast } from "sonner"
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   AIChatEntityType,
   AIChatActionStatus,
@@ -26,30 +27,30 @@ import type {
   AIChatUpdate,
   AIChatUserMessage,
   AIChatUserMessageContext,
-} from "@planify/types"
-import { generateRandomIDv1 } from "@planify/types"
-import { generateAIChatResponse } from "@/lib/api/chat-message"
-import { fetchQuotaUsage } from "@/lib/api/quota"
-import { captureActionBefore } from "@/lib/chat/action-baseline"
-import { useEntityNavigation } from "@/lib/chat/entity-navigation"
+} from "@planify/types";
+import { generateRandomIDv1 } from "@planify/types";
+import { generateAIChatResponse } from "@/lib/api/chat-message";
+import { fetchQuotaUsage } from "@/lib/api/quota";
+import { captureActionBefore } from "@/lib/chat/action-baseline";
+import { useEntityNavigation } from "@/lib/chat/entity-navigation";
 import {
   clearChatMessages,
   loadChatMessages,
   saveChatMessages,
-} from "@/lib/chat/chat-storage"
-import AIChatMessageBubble from "./ai-chat-bubble"
-import { AIChatRuntimeProvider, type AIChatRuntimeValue } from "./chat-runtime"
+} from "@/lib/chat/chat-storage";
+import AIChatMessageBubble from "./ai-chat-bubble";
+import { AIChatRuntimeProvider, type AIChatRuntimeValue } from "./chat-runtime";
 
 export interface AIChatTypeInfo {
-  title: string
-  description: string
-  placeholder: string
-  emptyTitle: string
-  emptyDescription: string
+  title: string;
+  description: string;
+  placeholder: string;
+  emptyTitle: string;
+  emptyDescription: string;
 }
 
 //basically how much the user can scroll up without it stopping the auto-scroll to bottom
-const SCROLL_BOTTOM_UNTIL = 24 //px
+const SCROLL_BOTTOM_UNTIL = 24; //px
 
 const CHAT_TYPE_INFO_BY_ENTITY: Record<AIChatEntityType, AIChatTypeInfo> = {
   "task-guide": {
@@ -76,30 +77,30 @@ const CHAT_TYPE_INFO_BY_ENTITY: Record<AIChatEntityType, AIChatTypeInfo> = {
     emptyDescription:
       "Ask a question or tell me how you'd like to change your pre-tasks.",
   },
-}
+};
 
 /*
  * Unresolved proposals from a restored transcript so they remain
  * actionable (Accept/Reject) after navigating away and back.
  */
 function collectPendingActions(
-  messages: AIChatMessage[]
+  messages: AIChatMessage[],
 ): AIChatPendingAction[] {
-  const actions: AIChatPendingAction[] = []
+  const actions: AIChatPendingAction[] = [];
 
   for (const message of messages) {
     if (message.role !== "assistant") {
-      continue
+      continue;
     }
 
     for (const part of message.parts ?? []) {
       if (part.type === "action" && part.action.status === "pending") {
-        actions.push(part.action)
+        actions.push(part.action);
       }
     }
   }
 
-  return actions
+  return actions;
 }
 
 /*
@@ -110,7 +111,7 @@ function collectPendingActions(
 function getNextResetDateLabel(): string {
   return new Date(
     Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1),
-  ).toLocaleDateString(undefined, { month: "long", day: "numeric" })
+  ).toLocaleDateString(undefined, { month: "long", day: "numeric" });
 }
 
 export function AIChat({
@@ -121,67 +122,69 @@ export function AIChat({
   initialMessages,
   historyKey,
 }: {
-  context: AIChatUserMessageContext
-  onApplyUpdate: (update: AIChatUpdate) => void
-  onApplyAction: (action: AIChatPendingAction) => Promise<boolean | void>
-  entityType: AIChatEntityType
-  initialMessages: AIChatMessage[]
+  context: AIChatUserMessageContext;
+  onApplyUpdate: (update: AIChatUpdate) => void;
+  onApplyAction: (action: AIChatPendingAction) => Promise<boolean | void>;
+  entityType: AIChatEntityType;
+  initialMessages: AIChatMessage[];
   /** Session-storage scope for this conversation; enables persistence. */
-  historyKey?: string
+  historyKey?: string;
 }) {
   const [messages, setMessages] = useState<AIChatMessage[]>(() =>
     historyKey
       ? (loadChatMessages(historyKey) ?? initialMessages)
-      : initialMessages
-  )
+      : initialMessages,
+  );
   const [pendingActions, setPendingActions] = useState<AIChatPendingAction[]>(
-    () => collectPendingActions(messages)
-  )
-  const [input, setInput] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const [failedRequest, setFailedRequest] = useState(false)
-  const [isFollowingStream, setIsFollowingStream] = useState(true)
-  const [tokensUsed, setTokensUsed] = useState(0)
-  const [tokenLimit, setTokenLimit] = useState<number | null>(null)
+    () => collectPendingActions(messages),
+  );
+  const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [failedRequest, setFailedRequest] = useState(false);
+  const [isFollowingStream, setIsFollowingStream] = useState(true);
+  const [tokensUsed, setTokensUsed] = useState(0);
+  const [tokenLimit, setTokenLimit] = useState<number | null>(null);
 
-  const messageListRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const activeAssistantMessageIdRef = useRef<string | null>(null)
+  const messageListRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const activeAssistantMessageIdRef = useRef<string | null>(null);
 
-  const chatTypeInfo = CHAT_TYPE_INFO_BY_ENTITY[entityType]
+  const chatTypeInfo = CHAT_TYPE_INFO_BY_ENTITY[entityType];
   /*
    * --------------------------------------------------------------------------
    * Effects
    * --------------------------------------------------------------------------
    */
   useEffect(() => {
-    const element = messageListRef.current
+    const element = messageListRef.current;
 
     // Only auto-scroll while the user is following the stream. Once they
     // scroll up, `handleMessageListScroll` flips the flag off and new
     // chunks must not yank them back to the bottom.
     if (!element || !isFollowingStream) {
-      return
+      return;
     }
 
-    element.scrollTop = element.scrollHeight
-  }, [messages, isFollowingStream])
+    element.scrollTop = element.scrollHeight;
+  }, [messages, isFollowingStream]);
 
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    inputRef.current?.focus();
+  }, []);
 
   // Fetch chat token quota on mount.
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     fetchQuotaUsage().then((data) => {
       if (!cancelled && data.chat_tokens) {
-        setTokensUsed(data.chat_tokens.used)
-        setTokenLimit(data.chat_tokens.limit)
+        setTokensUsed(data.chat_tokens.used);
+        setTokenLimit(data.chat_tokens.limit);
       }
-    })
-    return () => { cancelled = true }
-  }, [])
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /*
    * Persist the transcript whenever it settles. Writes are skipped while a
@@ -192,17 +195,17 @@ export function AIChat({
    */
   useEffect(() => {
     if (!historyKey || isSending) {
-      return
+      return;
     }
 
     if (messages.length === 0) {
-      clearChatMessages(historyKey)
+      clearChatMessages(historyKey);
 
-      return
+      return;
     }
 
-    saveChatMessages(historyKey, messages)
-  }, [historyKey, messages, isSending])
+    saveChatMessages(historyKey, messages);
+  }, [historyKey, messages, isSending]);
   /*
    * --------------------------------------------------------------------------
    * Message handling
@@ -214,18 +217,18 @@ export function AIChat({
       id: generateRandomIDv1(),
       role: "user",
       content,
-    }
+    };
 
-    addMessage(userMessage)
+    addMessage(userMessage);
 
-    const assistantMessageId = generateRandomIDv1()
-    activeAssistantMessageIdRef.current = assistantMessageId
+    const assistantMessageId = generateRandomIDv1();
+    activeAssistantMessageIdRef.current = assistantMessageId;
     addMessage({
       id: assistantMessageId,
       role: "assistant",
       content: "",
       parts: [],
-    })
+    });
 
     try {
       const aiResponse = await generateAIChatResponse(userMessage, context, {
@@ -234,98 +237,97 @@ export function AIChat({
         onThinking: (chunk) => appendAssistantContent("thinking", chunk),
 
         onThinkingFinished: (durationSeconds) => {
-          markThinkingFinished(durationSeconds)
+          markThinkingFinished(durationSeconds);
         },
 
         onToolStarted: (toolCallId, tool) => {
-          addToolStarted(toolCallId, tool)
+          addToolStarted(toolCallId, tool);
         },
 
         onToolCompleted: (toolCallId, tool, statusText) => {
-          setToolStatus(toolCallId, "completed", statusText)
+          setToolStatus(toolCallId, "completed", statusText);
         },
         onToolFailed: (toolCallId, tool, statusText) => {
-          console.error(`Tool failed: ${tool} (call ID: ${toolCallId})`)
-          setToolStatus(toolCallId, "failed", statusText)
+          console.error(`Tool failed: ${tool} (call ID: ${toolCallId})`);
+          setToolStatus(toolCallId, "failed", statusText);
         },
 
         onAction: (action) => {
-          addPendingAction(action)
+          addPendingAction(action);
           // Snapshot the affected values now — this is the only moment the
           // plan is guaranteed to be in the pre-change state.
           appendAssistantPart({
             type: "action",
             action,
             before: captureActionBefore(action, context),
-          })
+          });
         },
 
         onActionResolved: (actionId, status) => {
-          resolvePendingAction(actionId, status)
+          resolvePendingAction(actionId, status);
         },
 
         onUsage: (outputTokens) => {
-          setTokensUsed((prev) => prev + outputTokens)
+          setTokensUsed((prev) => prev + outputTokens);
         },
 
         onUsageLimitReached: (message) => {
-          const resetLabel = getNextResetDateLabel()
+          const resetLabel = getNextResetDateLabel();
           toast.warning(message, {
             description: `Your limit resets on ${resetLabel}`,
             duration: 10_000,
-          })
+          });
         },
-      })
+      });
 
       updateAssistantMessage((message) => ({
         ...message,
         content: aiResponse.content,
-      }))
-
+      }));
     } catch (error) {
       // If the server rejected the request because the monthly chat-token
       // quota is exhausted, surface the message inside the assistant bubble
       // so it looks like the AI is telling the user directly.
       const isQuotaExceeded =
-        error instanceof Error && error.cause === "quota_exceeded"
+        error instanceof Error && error.cause === "quota_exceeded";
 
       if (isQuotaExceeded) {
-        const resetLabel = getNextResetDateLabel()
+        const resetLabel = getNextResetDateLabel();
         updateAssistantMessage((message) => ({
           ...message,
           content: `Max token limit reached. Please wait until ${resetLabel} for your usage to reset.`,
-        }))
+        }));
       }
 
       //setFailedRequest(true)
     }
-    activeAssistantMessageIdRef.current = null
-  }
+    activeAssistantMessageIdRef.current = null;
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    const content = input.trim()
+    const content = input.trim();
 
     if (!content || isSending) {
-      return
+      return;
     }
 
-    setInput("")
-    setFailedRequest(false)
+    setInput("");
+    setFailedRequest(false);
     // Sending a new message resumes following so the reply stays in view.
-    setIsFollowingStream(true)
-    setIsSending(true)
+    setIsFollowingStream(true);
+    setIsSending(true);
 
     try {
-      await sendMessage(content)
+      await sendMessage(content);
     } catch (error) {
-      console.error("Failed to send chat message:", error)
-      setFailedRequest(true)
+      console.error("Failed to send chat message:", error);
+      setFailedRequest(true);
     } finally {
-      setIsSending(false)
+      setIsSending(false);
     }
-  }
+  };
 
   /*
    * --------------------------------------------------------------------------
@@ -335,15 +337,15 @@ export function AIChat({
 
   const handleRetry = async () => {
     if (isSending) {
-      return
+      return;
     }
 
     // TODO: Store the last failed request so it can be retried.
     //
     // For now this is intentionally a no-op.
 
-    console.log("handleRetry")
-  }
+    console.log("handleRetry");
+  };
 
   /*
    * Clears the whole conversation: local state and the persisted scope.
@@ -352,14 +354,14 @@ export function AIChat({
    */
   const handleClearConversation = () => {
     if (isSending) {
-      return
+      return;
     }
 
-    setMessages([])
-    setPendingActions([])
-    setFailedRequest(false)
-    setIsFollowingStream(true)
-  }
+    setMessages([]);
+    setPendingActions([]);
+    setFailedRequest(false);
+    setIsFollowingStream(true);
+  };
 
   /*
    * --------------------------------------------------------------------------
@@ -368,32 +370,32 @@ export function AIChat({
    */
 
   const addMessage = (message: AIChatMessage) => {
-    setMessages((current) => [...current, message])
-  }
+    setMessages((current) => [...current, message]);
+  };
 
   const updateAssistantMessage = (
     update: (
-      message: Extract<AIChatMessage, { role: "assistant" }>
-    ) => AIChatMessage
+      message: Extract<AIChatMessage, { role: "assistant" }>,
+    ) => AIChatMessage,
   ) => {
-    const messageId = activeAssistantMessageIdRef.current
+    const messageId = activeAssistantMessageIdRef.current;
 
     if (!messageId) {
-      return
+      return;
     }
 
     setMessages((current) =>
       current.map((message) =>
         message.id === messageId && message.role === "assistant"
           ? update(message)
-          : message
-      )
-    )
-  }
+          : message,
+      ),
+    );
+  };
   const appendAssistantPart = (part: AIChatMessagePart) => {
     updateAssistantMessage((message) => {
-      const parts = message.parts ?? []
-      const lastPart = parts.at(-1)
+      const parts = message.parts ?? [];
+      const lastPart = parts.at(-1);
 
       if (
         lastPart?.type === part.type &&
@@ -406,77 +408,77 @@ export function AIChat({
             ...parts.slice(0, -1),
             { ...lastPart, content: lastPart.content + part.content },
           ],
-        }
+        };
       }
 
-      return { ...message, parts: [...parts, part] }
-    })
-  }
+      return { ...message, parts: [...parts, part] };
+    });
+  };
   const appendAssistantContent = (
     type: "thinking" | "message",
-    content: string
+    content: string,
   ) => {
-    appendAssistantPart({ type, content })
-  }
+    appendAssistantPart({ type, content });
+  };
   const addPendingAction = (action: AIChatPendingAction) => {
-    setPendingActions((current) => [...current, action])
-  }
+    setPendingActions((current) => [...current, action]);
+  };
   const addToolStarted = (toolCallId: string, tool: string) => {
-    appendAssistantPart({ type: "tool", toolCallId, tool, status: "started" })
-  }
+    appendAssistantPart({ type: "tool", toolCallId, tool, status: "started" });
+  };
   const setToolStatus = (
     toolCallId: string,
     status: "completed" | "failed",
-    statusText?: string
+    statusText?: string,
   ) => {
     updateAssistantMessage((message) => ({
       ...message,
       parts: (message.parts ?? []).map((part) =>
         part.type === "tool" && part.toolCallId === toolCallId
           ? { ...part, status, statusText }
-          : part
+          : part,
       ),
-    }))
-  }
+    }));
+  };
   // Stamps the measured duration onto the segment that just finished so the
   // header can read "Thought for 3.6s". The part stays put; nothing else in
   // the stream needs to know which segment it belongs to because thinking
   // deltas always merge into the trailing thinking part.
   const markThinkingFinished = (durationSeconds: number) => {
     updateAssistantMessage((message) => {
-      const parts = [...(message.parts ?? [])]
+      const parts = [...(message.parts ?? [])];
 
       for (let index = parts.length - 1; index >= 0; index -= 1) {
-        const part = parts[index]
+        const part = parts[index];
 
         if (part.type !== "thinking") {
-          continue
+          continue;
         }
 
         if (part.durationSeconds != null) {
-          break
+          break;
         }
 
-        parts[index] = { ...part, durationSeconds }
-        break
+        parts[index] = { ...part, durationSeconds };
+        break;
       }
 
-      return { ...message, parts }
-    })
-  }
+      return { ...message, parts };
+    });
+  };
   const resolvePendingAction = (
     actionId: string,
-    status: AIChatActionStatus
+    status: AIChatActionStatus,
   ) => {
     setPendingActions((current) =>
       current.map((action) =>
-        action.id === actionId ? { ...action, status } : action
-      )
-    )
+        action.id === actionId ? { ...action, status } : action,
+      ),
+    );
     setMessages((current) =>
       current.map((message) => {
         if (message.role !== "assistant") {
-          return message
+          return message;
         }
 
         return {
@@ -484,12 +486,12 @@ export function AIChat({
           parts: (message.parts ?? []).map((part) =>
             part.type === "action" && part.action.id === actionId
               ? { ...part, action: { ...part.action, status } }
-              : part
+              : part,
           ),
-        }
-      })
-    )
-  }
+        };
+      }),
+    );
+  };
 
   // Resolves a proposal from the Accept/Reject buttons in the message bubble.
   //
@@ -497,18 +499,18 @@ export function AIChat({
   // it is implemented; for now this only updates the local chat state.
   const handleResolveAction = async (
     actionId: string,
-    decision: "approved" | "rejected"
+    decision: "approved" | "rejected",
   ) => {
-    const action = pendingActions.find((item) => item.id === actionId)
+    const action = pendingActions.find((item) => item.id === actionId);
 
     if (decision === "approved" && action) {
-      const applied = onApplyAction ? await onApplyAction(action) : false
-      resolvePendingAction(actionId, applied ? "applied" : "failed")
-      return
+      const applied = onApplyAction ? await onApplyAction(action) : false;
+      resolvePendingAction(actionId, applied ? "applied" : "failed");
+      return;
     }
 
-    resolvePendingAction(actionId, decision)
-  }
+    resolvePendingAction(actionId, decision);
+  };
 
   // Lets the bubble render human-readable proposals ("Change "Eat Lunch"")
   // from raw tool arguments that only carry a task ID. The scoped `tasks`
@@ -517,26 +519,26 @@ export function AIChat({
   const getTaskById = (taskId: string) =>
     context.tasks?.find((task) => task.id === taskId) ??
     context.schedule?.tasks.find((task) => task.id === taskId) ??
-    (context.currentTask?.id === taskId ? context.currentTask : undefined)
+    (context.currentTask?.id === taskId ? context.currentTask : undefined);
 
   // Guide-step counterpart of getTaskById. The step's live position travels
   // with it because ids are array indexes that renumber after every
   // insert/move; only guide-scoped conversations have a currentGuide, so
   // list-level chats simply resolve nothing and cards lean on snapshots.
   const getGuideStep = (stepId: number) => {
-    const steps = context.currentGuide?.steps
-    const step = steps?.find((candidate) => candidate.id === stepId)
+    const steps = context.currentGuide?.steps;
+    const step = steps?.find((candidate) => candidate.id === stepId);
 
     if (steps == null || step == null) {
-      return undefined
+      return undefined;
     }
 
-    return { step, order: steps.indexOf(step) }
-  }
+    return { step, order: steps.indexOf(step) };
+  };
 
   // Built once for the whole conversation; proposal cards follow entity
   // references through the runtime context instead of per-component hooks.
-  const navigateToEntity = useEntityNavigation(context.schedule?.id)
+  const navigateToEntity = useEntityNavigation(context.schedule?.id);
 
   const chatRuntime: AIChatRuntimeValue = {
     getTaskById,
@@ -545,7 +547,7 @@ export function AIChat({
     navigateToEntity,
     currentTaskId: context.currentTask?.id,
     scope: entityType === "pre-task" ? "pre-task" : "task",
-  }
+  };
 
   /*
    * --------------------------------------------------------------------------
@@ -553,45 +555,48 @@ export function AIChat({
    * --------------------------------------------------------------------------
    */
   const handleMessageListScroll = () => {
-    const element = messageListRef.current
+    const element = messageListRef.current;
 
     if (!element) {
-      return
+      return;
     }
 
     const distanceFromBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight
+      element.scrollHeight - element.scrollTop - element.clientHeight;
 
-    const atBottom = distanceFromBottom <= SCROLL_BOTTOM_UNTIL
+    const atBottom = distanceFromBottom <= SCROLL_BOTTOM_UNTIL;
 
-    setIsFollowingStream(atBottom)
-  }
+    setIsFollowingStream(atBottom);
+  };
   const scrollToBottom = () => {
-    const element = messageListRef.current
+    const element = messageListRef.current;
 
     if (!element) {
-      return
+      return;
     }
-    const target = element.scrollHeight
-    const endPos = Math.min(target, element.scrollHeight - element.clientHeight)
+    const target = element.scrollHeight;
+    const endPos = Math.min(
+      target,
+      element.scrollHeight - element.clientHeight,
+    );
 
     element.scrollTo({
       top: target,
       behavior: "smooth",
-    })
+    });
 
     element.addEventListener(
       "scrollend",
       () => {
         if (element.scrollTop >= endPos - SCROLL_BOTTOM_UNTIL) {
-          element.scrollTop = element.scrollHeight
+          element.scrollTop = element.scrollHeight;
         }
       },
-      { once: true }
-    )
-  }
+      { once: true },
+    );
+  };
 
-  const lastMessage = messages.at(-1)
+  const lastMessage = messages.at(-1);
 
   return (
     <Card className="flex h-full flex-col overflow-hidden py-0">
@@ -646,8 +651,11 @@ export function AIChat({
                     <Bot className="size-4" />
                   </div>
 
-                  <div className="rounded-xl bg-muted px-4 py-3 text-sm">
-                    <span className="text-shine">Thinking...</span>
+                  <div className="flex items-center gap-2 rounded-xl bg-muted px-4 py-3 text-sm">
+                    <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Loading assistant...
+                    </span>
                   </div>
                 </div>
               )}
@@ -690,9 +698,9 @@ export function AIChat({
               disabled={isSending}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault()
+                  event.preventDefault();
 
-                  event.currentTarget.form?.requestSubmit()
+                  event.currentTarget.form?.requestSubmit();
                 }
               }}
             />
@@ -724,7 +732,8 @@ export function AIChat({
                 </div>
 
                 <span className="whitespace-nowrap text-xs text-muted-foreground">
-                  {(tokensUsed / 1000).toFixed(1)}k / {(tokenLimit / 1000).toFixed(1)}k tokens used
+                  {(tokensUsed / 1000).toFixed(1)}k /{" "}
+                  {(tokenLimit / 1000).toFixed(1)}k tokens used
                 </span>
               </div>
             )}
@@ -732,5 +741,5 @@ export function AIChat({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
