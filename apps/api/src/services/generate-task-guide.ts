@@ -39,7 +39,7 @@ export async function generateTaskGuide(
     userMessage: JSON.stringify(task),
     schema: TASK_GUIDE_JSON_SCHEMA,
     signal,
-    options: { temperature: 0.7 },
+    options: { temperature: 0.2 },
   });
 
   const data = (await response.json()) as AIProviderChatResponse;

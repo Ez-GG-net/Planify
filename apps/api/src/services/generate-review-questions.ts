@@ -22,7 +22,7 @@ export async function generateReviewQuestions(
     userMessage: JSON.stringify(schedule),
     schema: REVIEW_QUESTIONS_JSON_SCHEMA,
     signal,
-    options: { temperature: 0.7 },
+    options: { temperature: 0.6 },
   });
 
   const data = (await response.json()) as AIProviderChatResponse;
