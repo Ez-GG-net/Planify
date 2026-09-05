@@ -50,7 +50,9 @@ export interface DeleteTaskArgs {
 
 export interface AIChatToolArguments {
   get_task: GetTaskArgs
+  get_all_tasks: {}
   get_pre_task: GetTaskArgs
+  get_all_pre_tasks: {}
 
   get_filtered_tasks: GetFilteredTasksArgs
   get_filtered_pre_tasks: GetFilteredTasksArgs
@@ -93,7 +95,9 @@ export interface AIChatToolArguments {
 export type AIChatTool = keyof AIChatToolArguments
 export type AIChatReadTool =
   | "get_task"
+  | "get_all_tasks"
   | "get_pre_task"
+  | "get_all_pre_tasks"
   | "get_task_guide"
   | "get_schedule"
 

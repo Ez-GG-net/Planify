@@ -46,6 +46,13 @@ const schedule = {
   return schedule
 }
 
+export async function getAllTasks(
+  args: AIChatToolArguments["get_all_tasks"],
+  context: AIChatToolContext
+) {
+  return scopedTasks(context)
+}
+
 export async function getFilteredTasks(
   args: AIChatToolArguments["get_filtered_tasks"],
   context: AIChatToolContext
@@ -64,4 +71,5 @@ export async function getFilteredTasks(
  * Pre-task variants — same logic, pinned to the pre-task list.
  */
 export const getPreTask = bindScope("pre-task", getTask)
+export const getAllPreTask = bindScope("pre-task", getAllTasks)
 export const getFilteredPreTasks = bindScope("pre-task", getFilteredTasks)
