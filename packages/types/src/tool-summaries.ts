@@ -83,6 +83,8 @@ const FAILURE_ACTIONS: Record<
   get_filtered_pre_tasks: () => "search pre-tasks",
   get_schedule: () => "retrieve schedule",
   get_task_guide: () => "retrieve guide",
+  get_all_tasks: (scope) => `retrieve all ${noun(scope)}s`,
+  get_all_pre_tasks: () => "retrieve all pre-tasks",
   create_task: (scope) => `create ${noun(scope)}`,
   create_pre_task: () => "create pre-task",
   create_task_guide_step: () => "add guide step",
@@ -194,6 +196,15 @@ export function formatToolSuccess(
       return count === 0
         ? `No matching ${noun(scope)}s found`
         : `Found ${count} matching ${noun(scope)}${count === 1 ? "" : "s"}`
+    }
+
+    case "get_all_tasks":
+    case "get_all_pre_tasks": {
+      const count = Array.isArray(result) ? result.length : 0
+
+      return count === 0
+        ? `No ${noun(scope)}s found`
+        : `Found ${count} ${noun(scope)}${count === 1 ? "" : "s"}`
     }
 
     default:

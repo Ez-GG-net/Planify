@@ -7,6 +7,8 @@ import type {
 import { createTask, createPreTask, createTaskGuideStep } from "./create"
 import { deleteTask, deletePreTask, deleteTaskGuideStep } from "./delete"
 import {
+  getAllPreTask,
+  getAllTasks,
   getFilteredPreTasks,
   getFilteredTasks,
   getPreTask,
@@ -24,6 +26,8 @@ export const aiTools = {
   get_filtered_tasks: getFilteredTasks,
   get_filtered_pre_tasks: getFilteredPreTasks,
   get_schedule: getSchedule,
+  get_all_tasks: getAllTasks,
+  get_all_pre_tasks: getAllPreTask,
 
   create_task: createTask,
   create_pre_task: createPreTask,
