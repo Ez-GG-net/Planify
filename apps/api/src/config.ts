@@ -81,7 +81,8 @@ export const config = {
      * `model` so the task/tool generation endpoints and the chat can run
      * different models if desired.
      */
-    chatModel: process.env.OLLAMA_CHAT_MODEL ?? "gpt-oss:20b",
+    chatModel: process.env.OLLAMA_CHAT_MODEL ?? "qwen3:8b",
+    fastModel: process.env.OLLAMA_FAST_MODEL ?? "qwen3:8b",
   },
 
   /**
