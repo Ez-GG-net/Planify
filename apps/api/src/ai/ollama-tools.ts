@@ -26,19 +26,25 @@ export interface OllamaToolCall {
 }
 
 /** One message in the conversation array sent to Ollama's `/api/chat`. */
-export interface OllamaChatMessage {
-  role: "system" | "user" | "assistant" | "tool";
+export type OllamaChatMessage = {
+  role: "system" | "user";
   content: string;
-  /** Set on `tool` result messages — the tool that produced the content. */
-  name?: string;
-  /**
-   * Set on `assistant` messages that issued tool calls. Ollama requires the
-   * originating assistant message to be replayed in history alongside the
-   * resulting `tool` messages so it can correlate calls with results.
-   */
-  tool_calls?: Array<{ function: { name: string; arguments: unknown } }>;
 }
-
+| {
+    role: "assistant";
+    content: string;
+    /**
+     * The round's full chain of thought (all `thinking` deltas concatenated
+     * in arrival order); only ever populated server-side.
+     */
+    thinking?: string;
+    tool_calls?: Array<{ function: { name: string; arguments: unknown } }>;
+}
+| {
+    role: "tool";
+    content: string;
+    name?: string;
+}
 /** One NDJSON line yielded while streaming a chat response from Ollama. */
 export interface OllamaChatChunk {
   message?: {
@@ -212,6 +218,22 @@ export const OLLAMA_TOOLS: OllamaToolFunction[] = [
       name: "get_task",
       description: "Retrieve a single task on the main schedule by ID.",
       parameters: simpleTaskIdParameters,
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_all_tasks",
+      description: "Get all tasks on the main schedule (no details, just id/title).",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_all_pre_tasks",
+      description: "Get all pre-tasks in the preparation list (no details, just id/title).",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
   {
