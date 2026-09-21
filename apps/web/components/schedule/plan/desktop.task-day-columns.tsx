@@ -139,7 +139,7 @@ export function TaskDayColumns() {
           <Card
             key={group.date}
             data-day={group.date}
-            className="w-90 shrink-0 overflow-hidden"
+            className="w-lg shrink-0 overflow-hidden"
           >
             {/* Day header */}
             <CardHeader className="shrink-0 pb-4">

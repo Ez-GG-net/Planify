@@ -242,8 +242,8 @@ export default function SchedulePlanView({ plan, onPlanChange }: SchedulePlanVie
         <header className="mb-6">
           <h1 className="text-xl font-semibold">{plan.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {format(new Date(`${plan.startDate}T00:00:00`), "MMM d, yyyy")}{" "}
-            - {format(new Date(`${plan.endDate}T00:00:00`), "MMM d, yyyy")}
+            {format(new Date(plan.startDate), "MMM d, yyyy")}{" "}
+            - {format(new Date(plan.endDate), "MMM d, yyyy")}
           </p>
         </header>
 

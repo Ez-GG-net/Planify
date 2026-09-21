@@ -78,5 +78,12 @@ export async function request(url: string, init?: ApiInit): Promise<Response> {
 export async function api<T>(url: string, init?: ApiInit): Promise<T> {
     const response = await request(url, init);
 
-    return (await response.json()) as T;
+    try {
+        return (await response.json()) as T;
+    } catch (error) {
+        return Promise.reject(new Error(
+            "Failed to parse API response as JSON",
+            { cause: error },
+        ));
+    }
 }

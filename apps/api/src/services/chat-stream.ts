@@ -17,10 +17,23 @@ import type {
 
 import { withGenerationSlot } from "@planify/api/ai/concurrency";
 import { executeTool } from "../ai/tools";
-import { UsageLimitReachedError } from "./chat-test-stream";
 import { OLLAMA_TOOLS, parseToolArguments } from "../ai/ollama-tools";
-import type { OllamaChatMessage } from "../ai/ollama-tools";
+import type { OllamaChatMessage, OllamaToolFunction } from "../ai/ollama-tools";
 import { streamOllamaChat } from "../ai/stream-chat";
+
+export class UsageLimitReachedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "UsageLimitReachedError"
+  }
+}
+function combineRoundTextAndReasoning(roundText: string, roundReasoning: string): string {
+  return `<Previous reasoning>
+${roundReasoning}
+</Previous reasoning>
+
+${roundText}`;
+}
 
 function createSSEEvent(event: AIChatStreamEvent): string {
   return `${AIChatStreamEventSSEEPrefix} ${JSON.stringify(event)}\r\n\r\n`;
@@ -76,24 +89,55 @@ function buildSystemPrompt(context: AIChatUserMessageContext): string {
         ? "a task's guide"
         : "the main schedule";
 
-  return `You are Planify's assistant, helping the user manage their schedule.
+  return `
+# Information
+  You are Planify's assistant, helping the user manage their schedule.
 
-You are currently working with ${target}.
+# Task Information
+  Each task will have a title, date, start time, and estimated duration. Tasks may also have a guide with steps and details.
+  Start time will be written in minutes-from-midnight (e.g. 8:30am = 510, 3:15pm = 915).
 
-You have access to tools to read and change schedule data. Prefer read tools
-(get_task, get_schedule, get_filtered_tasks, get_task_guide, and their
-pre-task variants) to gather the information you need before answering.
+# Tools
 
-Write tools (create_*, modify_*, delete_*) DO NOT change anything directly —
-they propose a change that the user must approve. When you call one, it
-returns {"status":"pending_approval","actionId":...}, meaning the proposal is
-awaiting the user's decision. Tell the user what you proposed so they can
-approve or reject it.
+  Read tools (get_*) inspect the current schedule and tasks.
+  They do not modify anything.
 
-Be concise and helpful. Answer in the same language the user writes in.
+  Write tools (create_*, modify_*, delete_*) create proposed changes.
+  They do not directly modify the schedule.
 
-Current schedule context:
-${scheduleText}`;
+  ## Write Tool Protocol
+
+  Before calling a write tool, briefly state what change you are proposing.
+
+  When a write tool returns:
+
+  {"status":"pending_approval","actionId":"..."}
+
+  the proposal has been successfully created.
+
+  After receiving pending_approval:
+
+  - Stop immediately.
+  - Do not call any additional tools.
+  - Do not create, modify, or delete another task.
+  - Do not repeat or restate the proposal.
+  - Do not continue reasoning about the requested change.
+  - Wait for the application to provide the approval or rejection result.
+
+  The application handles approval through the proposal UI. Do not ask the user to approve or reject the proposal.
+
+  Never call a write tool again for the same change unless the application explicitly indicates that the previous proposal was rejected or cancelled.
+
+# Context
+  You are currently working with ${target}.
+  
+  Current date: ${new Date().toISOString()}
+
+# Output
+  - Make responses short and concise. 
+  - Do not include any extra commentary or explanations. Only respond with the information requested or the action proposed.
+  - Answer in the same language the user writes in.
+`;
 }
 
 /**
@@ -110,10 +154,10 @@ function buildPreviousMessages(
   for (const prev of context.previousMessages ?? []) {
     if (prev.role === "user") {
       previousMessages.push({ role: "user", content: prev.content });
-    } else {
+    } else if (prev.role === "assistant") {
       // Assistant messages: only the plain-text content matters for the model.
       previousMessages.push({ role: "assistant", content: prev.content });
-    }
+    } //Ignore tool messages from past turns
   }
 
   return previousMessages;
@@ -178,8 +222,16 @@ export function chatStream(
       try {
         const toolContext = createToolContext(context);
         const systemMessage = buildSystemPrompt(context);
-        const userMessage = message.content;
-        const previousMessages = buildPreviousMessages(context);
+        const previousMessages: OllamaChatMessage[] = [
+          ...buildPreviousMessages(context),
+          // The current user message is seeded here, in chronological order,
+          // so it sits before any assistant/tool round messages the agent
+          // loop appends below. Passing `userMessage: ""` per round keeps
+          // callProvider from re-posing it as a fresh prompt on every
+          // iteration (which read like the assistant responding before the
+          // request and re-derived identical reasoning each round).
+          { role: "user", content: message.content },
+        ];
 
         // If the caller's client disconnects, propagate the abort to Ollama.
         signal?.addEventListener("abort", () => abortController.abort(), {
@@ -189,10 +241,14 @@ export function chatStream(
         // Hold a single generation slot for the entire multi-round loop so Ollama isn't preempted between tool rounds.
         await withGenerationSlot(async () => {
           for (let round = 0; round < MAX_ROUNDS; round++) {
+            ////console.dir(previousMessages, { depth: 5, colors: true });
             let roundText = "";
             // Reasoning-model state: the model streams `thinking` text before
             // its final `content` answer. We surface it as a self-contained
-            // collapsible segment per round.
+            // collapsible segment per round, and accumulate it so the next
+            // round's Ollama call can see the model's own prior chain of
+            // thought instead of forcing it to re-derive from scratch.
+            let roundReasoning = "";
             let thinkingStartedAt: number | null = null;
             let thinkingFinished = false;
             const toolCalls: Array<{
@@ -214,7 +270,7 @@ export function chatStream(
             // Iterate through each NDJSON chunk from Ollama until it signals `done` or the stream is aborted.
             for await (const chunk of streamOllamaChat({
               systemMessage,
-              userMessage,
+              userMessage: "",
               previousMessages,
               tools: OLLAMA_TOOLS,
               signal: abortController.signal,
@@ -223,6 +279,7 @@ export function chatStream(
               const thinking = chunk.message?.thinking;
               if (thinking) {
                 thinkingStartedAt ??= Date.now();
+                roundReasoning += thinking;
                 emit({ type: "thinking_delta", content: thinking });
               }
               //If the model has finished thinking and started producing content, emit a `thinking_finished` event and a `message_delta` event
@@ -236,7 +293,8 @@ export function chatStream(
               //If the model has sent tool call(s), add it to the list
               for (const call of chunk.message?.tool_calls ?? []) {
                 const name = call.function?.name;
-                if (name && (name as string) in OLLAMA_TOOLS_MAP) {
+                //Check if the tool name exists, add it to the list of tool calls 
+                if (name && OLLAMA_TOOLS_MAP.has(name)) {
                   toolCalls.push({
                     name: name as AIChatTool,
                     arguments: parseToolArguments(call.function?.arguments),
@@ -262,11 +320,13 @@ export function chatStream(
               break;
             }
 
-            // Push the assistant's answer and tool calls to the message history so the
-            // next round model can see them.
+            // Push the assistant's answer (plus its chain of thought) and
+            // tool calls to the message history so the next round model can
+            // see them and continue its reasoning.
             previousMessages.push({
               role: "assistant",
-              content: roundText,
+              content: roundReasoning.trim() ? combineRoundTextAndReasoning(roundText, roundReasoning) : roundText,
+              //thinking: roundReasoning, //add this back if ollama models support it
               tool_calls: toolCalls.map((call) => ({
                 function: { name: call.name, arguments: call.arguments },
               })),
@@ -296,6 +356,9 @@ export function chatStream(
             // Note: Pending actions are proposals to modify the schedule, they do not modify it yet.
             for (const action of toolContext.pendingActions.slice(doneBefore)) {
               emit({ type: "action_proposed", action });
+            }
+            if (toolContext.pendingActions.length > doneBefore) {
+              break; // Stop the loop after proposing actions, the model must wait for approval or rejection before continuing.
             }
 
             previousMessages.push(...toolResults);
@@ -330,7 +393,7 @@ export function chatStream(
 }
 
 /** Maps tool names to their Ollama definitions for a fast existence check. */
-const OLLAMA_TOOLS_MAP = new Map(
+const OLLAMA_TOOLS_MAP = new Map<string, OllamaToolFunction>(
   OLLAMA_TOOLS.map((tool) => [tool.function.name, tool]),
 );
 

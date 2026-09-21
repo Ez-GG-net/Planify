@@ -4,6 +4,7 @@ import { ApiError } from "@planify/api/errors/handle-api-error";
 import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 import { TASK_GUIDE_JSON_SCHEMA } from "@planify/api/ai/model-output-schema";
+import { config } from "../config";
 
 /**
  * JSON Schema passed to Ollama's `format` parameter. Steps intentionally
@@ -39,7 +40,7 @@ export async function generateTaskGuide(
     userMessage: JSON.stringify(task),
     schema: TASK_GUIDE_JSON_SCHEMA,
     signal,
-    options: { temperature: 0.2 },
+    options: { temperature: 0.2, model: config.ollama.fastModel },
   });
 
   const data = (await response.json()) as AIProviderChatResponse;

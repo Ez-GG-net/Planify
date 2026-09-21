@@ -24,6 +24,10 @@ export interface CallProviderOptions {
     temperature?: number;
     /** Model name. Defaults to config.ollama.model. */
     model?: string;
+    /** Whether the model should think through the problem. Defaults to true. */
+    think?: boolean | "low" | "medium" | "high";
+    /** Context window size. Defaults to 1024. */
+    num_ctx?: number;
     /**
      * Whether to acquire a generation slot for this request. Defaults to
      * true. Set false when the caller already holds a slot (e.g. the chat
@@ -58,31 +62,45 @@ export interface AIProviderChatResponse {
 export async function callProvider(
   opts: CallProviderOptions,
 ): Promise<CallProviderResult> {
-  const url = `${config.ollama.apiUrl}`;
   const stream = opts.options?.stream ?? false;
+
+  const model = opts.options?.model ?? config.ollama.model
 
   let response: Response;
 
-  // Builds the conversation for the request. Optional prior messages are
-  // inserted between the system and the current user message.
+  // Builds the conversation for the request.
+  //
+  // System message
+  //       ↓
+  // Previous messages (assistant/user/tool)
+  //       ↓
+  // User message
+  //       ↓
+  // Model responses for round
   const messages: OllamaChatMessage[] = [
     { role: "system", content: opts.systemMessage },
     ...(opts.previousMessages ?? []),
-    { role: "user", content: opts.userMessage },
+    ...(opts.userMessage
+      ? ([{ role: "user", content: opts.userMessage }] satisfies OllamaChatMessage[])
+      : []),
   ];
 
   const doFetch = () =>
-    fetch(url, {
+    fetch(config.ollama.apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: opts.signal,
       body: JSON.stringify({
-        model: opts.options?.model ?? config.ollama.model,
+        model: model,
         messages,
         tools: opts.tools,
         stream,
         format: opts.schema,
-        options: { temperature: opts.options?.temperature ?? 0.5 },
+        options: { 
+          temperature: opts.options?.temperature ?? 0.5,
+          num_ctx: opts.options?.num_ctx ?? 2048*2,
+          think: opts.options?.think ?? (model === "gpt-oss:20b" ? "low" : true),
+         },
       }),
     });
 
@@ -141,7 +159,7 @@ export async function callProvider(
   // OPTIONAL OPTIMIZATION: we could avoid parsing the JSON twice if the caller wants the parsed content
   const data = (await response.clone().json()) as AIProviderChatResponse;
 
-  if (data.error) {
+  if (data.error || data.done_reason === "length") {
     console.error("[ai] AI provider response error:", data.error);
     throw new ApiError(
       502,

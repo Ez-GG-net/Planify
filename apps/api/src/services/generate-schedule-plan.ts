@@ -26,7 +26,7 @@ export async function generateSchedulePlan(
     userMessage: JSON.stringify(input),
     schema: SCHEDULE_PLAN_JSON_SCHEMA,
     signal,
-    options: { temperature: 0.2 },
+    options: { temperature: 0.2, num_ctx: 2048*4 },
   });
 
   const data = (await response.json()) as AIProviderChatResponse;

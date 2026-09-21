@@ -19,14 +19,21 @@ export const PRE_TASK_GUIDE_JSON_SCHEMA = {
 
 export const REVIEW_QUESTIONS_JSON_SCHEMA = {
   type: "array",
+  minItems: 1,
+  maxItems: 10,
   items: {
     type: "object",
     properties: {
       noteTitle: { type: "string" },
       question: { type: "string" },
-      choices: { type: "array", items: { type: "string" } },
+      choices: { 
+        type: "array", 
+        minItems: 2,
+        maxItems: 5,
+        items: { type: "string" } },
     },
     required: ["noteTitle", "question", "choices"],
+    additionalProperties: false,
   },
 } as const;
 
@@ -36,7 +43,19 @@ export const SCHEDULE_PLAN_JSON_SCHEMA = {
     title: { type: "string" },
     startDate: { type: "string" },
     endDate: { type: "string" },
-    preTasks: { type: "array", items: { type: "object" } },
+    preTasks: { 
+      type: "array",
+      items: { 
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+        },
+        required: ["id", "title"],
+        additionalProperties: false,
+      }
+     },
     tasks: {
       type: "array",
       items: {
@@ -49,11 +68,13 @@ export const SCHEDULE_PLAN_JSON_SCHEMA = {
           estimatedDuration: { type: "number" },
           details: { type: ["object", "null"] },
         },
-        required: ["id", "title"],
+        required: ["id", "title", "date", "startTime", "estimatedDuration"],
+        additionalProperties: false,
       },
     },
   },
   required: ["title", "startDate", "endDate", "preTasks", "tasks"],
+  additionalProperties: false,
 } as const;
 
 export const TASK_GUIDE_JSON_SCHEMA = {

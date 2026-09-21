@@ -4,6 +4,7 @@ import { ApiError } from "@planify/api/errors/handle-api-error";
 import { AIProviderChatResponse, callProvider } from "@planify/api/ai/call-provider";
 import { PRE_TASK_GUIDE_SYSTEM_PROMPT } from "@planify/api/ai/prompts";
 import { PRE_TASK_GUIDE_JSON_SCHEMA } from "@planify/api/ai/model-output-schema";
+import { config } from "../config";
 
 /**
  * JSON Schema passed to Ollama's `format` parameter to constrain output
@@ -24,7 +25,7 @@ export async function generatePreTaskGuide(
     userMessage: JSON.stringify(task),
     schema: PRE_TASK_GUIDE_JSON_SCHEMA,
     signal,
-    options: { temperature: 0.2 },
+    options: { temperature: 0.2, model: config.ollama.fastModel },
   });
 
   const data = (await response.json()) as AIProviderChatResponse;
