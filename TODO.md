@@ -1,23 +1,59 @@
 # Planify TODOs 
 ### (Probably arranged in order of importance)
+- Make the AI chat interface collapsible and openable with a button (swipe from bottom on mobile)
 - Add a limit for canceling the amount of times a user can cancel a generation before it starts actually counting toward their quota
   - Prevents users from wasting system resources
+- Chat interface: Add the users character count to the quota usage 
+- Give the task guide AI access to previous tasks (just the title) 
+- Add a button to stop a chat response
+- Update token limit on error or per message quota exceeded for chat interface
+- Optimization: Truncate the most recent round's reasoning (e.g. ~1-2k chars)
+- Optimization: Remove unnecessary info from previous chat responses (before the last user request)
+  - Tool results
+  - Reasoning
+- Optimization: Delete tool results from previous 
 - If the user asks the AI to edit a pre-task, the AI should also be able to change tasks associated with that pre-task (not any other task)
   - Maybe link tasks to a pre-task
+- Give the AI access to web search/find the best route to do a plan
+- Add a check to the users goal if it can realistically be completed in that time
+  - State why and how to fix it
+  - Or ask "Are you sure you still want to complete your goal?"
+- Fix bug: plan-view not updating on sidebar change
+- Change the hard coded estimated time for generation to be the actual average
+- Fix bug: Show quota reached when sending a message to the AI in the chat interface
 - Make the review questions in the wizard have an option to be multiple choice
-
+- In the wizard, change the time per day selection to be a available time/preferred time selection (Ex. 5 hours -> 2pm-7pm)
+- In the wizard, change the date selection from A - Z to be A,B,C,D,F,Z (makes it easier to omit weekdays and preferred non-working days) 
+- For plans that involve working, add a question in the review questions for preferred working style (quick and efficient, balanced, slow and steady)
+- Make the review questions also suggest alternatives to the users choices unless it is absolutely the best route to take
 - Make the wizard ask if the user wants to recreate their review questions if they updated their notes after they were generated
 - Add bfcache handle to wizard
 - Make the placeholder say "Do you already have a rough idea of a plan?"
 - Make the wizard review questions heading scroll area auto scroll to current question and not have the scrollar visible
+- Make the task guide accordion automatically open up the next one on complete
 - Make the wizard initially retrieve quota once and update remaining quota (for review questions and schedule) on the client. Initially meaning on every page refresh. 
+- Maybe, make the schedule task title be shorter as a list, but show a detailed title when in the task guide page
 - Don't share the choiceNum with the AI when giving review questions to the schedule planner AI.
+- Failsafe/Optimization: Add a safety net on tool result lengths (a user could make their schedule REALLY big )
+- Combine the missing content check form generate services
+- Fix Bug: The scroll arrow in the chat interface appears when the thinking is past the height but is collapsed
+- Split the schedule planning system prompt for multiple plans (such as study, fitness, or trip)
+  - {average of all numbers below total average}-{average of all numbers above total average}
+- Wizard: Add an auto-next functionality when the user clicks enter in a field
 - While the AI is loading (not thinking or generating), it should say funny things that a normal human would do to avoid answering.
   Examples:
-  - Rereading request
+  - Looking online for the best methods
+  - Brewing a new cup of coffee
   - Taking a sip of coffee
   - Looking for a snack
   - Checking the wifi router
   - Adjusting chair height
   - Fidgeting with pen nervously
   - Cleaning eyeglasses
+- HARD: Add a tutorial on how to use the app
+## Things to consider:
+- Not every pre-task guide needs a description 
+- buildPreviousMessages (in chat-stream.ts) has a useless if statement
+- DB quota_usage doesnt clear every month (just adds a new row of quotas)
+- Max token context for chat models might be too little
+- Max rounds for chat could be too high
