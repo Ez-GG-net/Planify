@@ -1,9 +1,13 @@
 ﻿"use client"
 
-import { useEffect, useState } from "react"
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import type { CSSProperties } from "react"
+import { motion } from "motion/react"
+import { useDrag } from "@use-gesture/react"
 
+import { cn } from "@/lib/utils"
 import { getSetting, setSetting } from "@/lib/storage"
+import { useIsMobile } from "@/hooks/use-mobile"
 import type {
   AIChatUserMessageContext,
   AIChatEntityType,
@@ -13,10 +17,67 @@ import type {
 } from "@planify/types"
 
 import { AIChat } from "./ai-chat"
+import { AIOpenLaunchers } from "./ai-open-lips"
 
 const DEFAULT_WIDTH = 550
 const MIN_WIDTH = 320
 const MAX_WIDTH = 1000
+
+/*
+ * Persisted drawer width. localStorage is an external store, so the width is
+ * read through useSyncExternalStore: settings restore after hydration without
+ * an effect, and any write announces itself so the store re-reads. The server
+ * snapshot is the default, which is what SSR renders.
+ */
+type WidthListener = () => void
+
+const widthListeners = new Set<WidthListener>()
+
+function subscribeChatWidth(listener: WidthListener) {
+  widthListeners.add(listener)
+
+  return () => {
+    widthListeners.delete(listener)
+  }
+}
+
+function readChatWidth(): number {
+  if (typeof window === "undefined") {
+    return DEFAULT_WIDTH
+  }
+
+  return getSetting<number>("TASK_GUIDE_CHAT_WIDTH") || DEFAULT_WIDTH
+}
+
+function writeChatWidth(nextWidth: number) {
+  setSetting("TASK_GUIDE_CHAT_WIDTH", nextWidth)
+  // Notify all subscribers that the width has changed, so they can re-read it.
+  widthListeners.forEach((listener) => listener())
+}
+
+/*
+ * Breakpoint that swaps the drawer's geometry: a resizable right-hand column
+ * on desktop, a full-width bottom sheet below that. Shared with the rest of
+ * the app via useIsMobile (768px), whose own getServerSnapshot keeps server
+ * and first client paint in agreement to avoid a hydration mismatch.
+ */
+
+/*
+ * The drawer's geometry depends on the breakpoint, so it is rendered only after
+ * the client has resolved it. This keeps the server/first paint from briefly
+ * positioning the sheet for the wrong axis during hydration.
+ */
+function subscribeMounted() {
+  return () => {}
+}
+
+function readMounted() {
+  return true
+}
+
+function readMountedServer() {
+  return false
+}
 
 interface AIChatPanelProps {
   /**
@@ -43,78 +104,135 @@ export function AIChatPanel({
   previousMessages,
   historyKey,
 }: AIChatPanelProps) {
-  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  const [isOpen, setIsOpen] = useState(false)
+  const width = useSyncExternalStore(
+    subscribeChatWidth,
+    readChatWidth,
+    () => DEFAULT_WIDTH,
+  )
+  const isDesktop = !useIsMobile()
+  const mounted = useSyncExternalStore(
+    subscribeMounted,
+    readMounted,
+    readMountedServer,
+  )
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const resizeRef = useRef<HTMLDivElement>(null)
+
+  /* Width at the start of a resize drag. */
+  const startWidthRef = useRef(DEFAULT_WIDTH)
 
   /*
-   * Restore the saved width after hydration.
+   * Close on Escape once the drawer is visible.
    */
   useEffect(() => {
-    const saved = getSetting<number>("TASK_GUIDE_CHAT_WIDTH")
-
-    if (typeof saved === "number" && saved >= MIN_WIDTH && saved <= MAX_WIDTH) {
-      setWidth(saved)
+    if (!isOpen) {
+      return
     }
-  }, [])
 
-  /*
-   * Persist the width so it survives navigation.
-   */
-  useEffect(() => {
-    setSetting("TASK_GUIDE_CHAT_WIDTH", width)
-  }, [width])
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isOpen])
 
   function clampWidth(nextWidth: number) {
     return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, nextWidth))
   }
 
   /*
-   * Resize by dragging the handle.
-   *
-   * Pointer capture keeps the move/up events flowing to the handle
-   * even when the cursor leaves it, and disables text selection
-   * for the duration of the drag.
+   * Resize by dragging the handle sticking out of the drawer's left edge.
+   * `touch-action: none` keeps the drag from racing the cursor or scrolling;
+   * userSelect is disabled for the duration of the drag.
    */
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    const handle = event.currentTarget
-    const startX = event.clientX
-    const startWidth = width
-
-    handle.setPointerCapture(event.pointerId)
-
-    const previousUserSelect = document.body.style.userSelect
-    document.body.style.userSelect = "none"
-
-    function handleMove(moveEvent: PointerEvent) {
-      setWidth(clampWidth(startWidth + (startX - moveEvent.clientX)))
-    }
-
-    function handleUp(upEvent: PointerEvent) {
-      document.body.style.userSelect = previousUserSelect
-
-      handle.removeEventListener("pointermove", handleMove)
-      handle.removeEventListener("pointerup", handleUp)
-
-      if (handle.hasPointerCapture(upEvent.pointerId)) {
-        handle.releasePointerCapture(upEvent.pointerId)
+  useDrag(
+    ({ first, last, movement: [mx] }) => {
+      if (first) {
+        startWidthRef.current = width
+        document.body.style.userSelect = "none"
       }
-    }
 
-    handle.addEventListener("pointermove", handleMove)
-    handle.addEventListener("pointerup", handleUp)
+      writeChatWidth(clampWidth(startWidthRef.current - mx))
+
+      if (last) {
+        document.body.style.userSelect = ""
+      }
+    },
+    {
+      target: resizeRef,
+      axis: "x",
+      filterTaps: true,
+      touchAction: "none",
+      pointer: { capture: true },
+    },
+  )
+
+  if (!mounted) {
+    return null
   }
 
   return (
-    <aside
-      className="w-full shrink-0 lg:w-(--chat-width)"
-      style={
-        {
-          "--chat-width": `${width}px`,
-        } as CSSProperties
-      }
-    >
-      <div className="h-[70dvh] lg:sticky lg:top-12 lg:h-[calc(100dvh-3rem)]">
+    <>
+      {!isOpen && <AIOpenLaunchers onOpen={() => setIsOpen(true)} />}
+
+      {/* Overlay backdrop — mobile only, tap to dismiss. */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Chat drawer — always mounted so the spring animates both ways; `inert`
+          (plus pointer-events/translate) keeps the closed state out of sight and
+          out of tab order. A full-width, half-height bottom sheet on mobile; the
+          resizable 320-1000px column on desktop. */}
+      <motion.div
+        ref={drawerRef}
+        initial={false}
+        animate={
+          isDesktop
+            ? { x: isOpen ? "0%" : "100%", y: 0 }
+            : { x: 0, y: isOpen ? "0%" : "100%" }
+        }
+        transition={{ type: "spring", stiffness: 380, damping: 42 }}
+        role="complementary"
+        aria-label="AI chat"
+        inert={!isOpen}
+        className={cn(
+          "fixed z-40 flex flex-col bg-background shadow-2xl",
+          "inset-x-0 bottom-0 h-3/4 rounded-t-2xl",
+          "md:inset-x-auto md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-(--chat-width) md:rounded-none",
+          isOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        style={
+          {
+            "--chat-width": `${width}px`,
+          } as CSSProperties
+        }
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          <AIChat
+            context={context}
+            onApplyUpdate={onApplyUpdate}
+            onApplyAction={onApplyAction}
+            entityType={entityType}
+            initialMessages={previousMessages}
+            historyKey={historyKey}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+
         {/* Drag handle */}
         <div
+          ref={resizeRef}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize chat panel"
@@ -122,7 +240,6 @@ export function AIChatPanel({
           aria-valuemin={MIN_WIDTH}
           aria-valuemax={MAX_WIDTH}
           tabIndex={0}
-          onPointerDown={handlePointerDown}
           onKeyDown={(event) => {
             let nextWidth: number | null = null
 
@@ -134,26 +251,18 @@ export function AIChatPanel({
 
             if (nextWidth != null) {
               event.preventDefault()
-              setWidth(clampWidth(nextWidth))
+              writeChatWidth(clampWidth(nextWidth))
             }
           }}
-          className="group absolute inset-y-0 left-0 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize touch-none outline-none select-none focus-visible:bg-foreground/10 lg:block"
+          className="group absolute inset-y-0 left-0 z-10 hidden w-3 -translate-x-1/2 cursor-col-resize outline-none select-none focus-visible:bg-foreground/10 md:block"
+          style={{ touchAction: "none" }}
         >
           <div
             aria-hidden
             className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-foreground/30 group-focus-visible:bg-foreground/40"
           />
         </div>
-
-        <AIChat
-          context={context}
-          onApplyUpdate={onApplyUpdate}
-          onApplyAction={onApplyAction}
-          entityType={entityType}
-          initialMessages={previousMessages}
-          historyKey={historyKey}
-        />
-      </div>
-    </aside>
+      </motion.div>
+    </>
   )
 }

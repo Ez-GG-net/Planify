@@ -121,6 +121,7 @@ export function AIChat({
   entityType,
   initialMessages,
   historyKey,
+  onClose,
 }: {
   context: AIChatUserMessageContext;
   onApplyUpdate: (update: AIChatUpdate) => void;
@@ -129,6 +130,8 @@ export function AIChat({
   initialMessages: AIChatMessage[];
   /** Session-storage scope for this conversation; enables persistence. */
   historyKey?: string;
+  /** Closes/hides the surrounding chat panel. */
+  onClose: () => void;
 }) {
   const [messages, setMessages] = useState<AIChatMessage[]>(() =>
     historyKey
@@ -618,20 +621,34 @@ export function AIChat({
           <Bot className="size-4" />
           {chatTypeInfo.title}
 
-          {messages.length > 0 && (
+          <span className="ml-auto flex items-center gap-1">
+            {messages.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-foreground"
+                aria-label="Clear conversation"
+                title="Clear conversation"
+                onClick={handleClearConversation}
+                disabled={isSending}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="ml-auto size-8 text-muted-foreground hover:text-foreground"
-              aria-label="Clear conversation"
-              title="Clear conversation"
-              onClick={handleClearConversation}
-              disabled={isSending}
+              className="size-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted"
+              aria-label="Close chat"
+              title="Close chat"
+              onClick={onClose}
             >
-              <Trash2 className="size-4" />
+              <X className="size-5" />
             </Button>
-          )}
+          </span>
         </CardTitle>
 
         <p className="text-sm text-muted-foreground">
