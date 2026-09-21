@@ -1,5 +1,7 @@
 # Planify TODOs 
 ### (Probably arranged in order of importance)
+- Add a home page
+- Add a 404 page
 - Make the AI chat interface collapsible and openable with a button (swipe from bottom on mobile)
 - Add a limit for canceling the amount of times a user can cancel a generation before it starts actually counting toward their quota
   - Prevents users from wasting system resources
@@ -28,6 +30,7 @@
 - Make the review questions also suggest alternatives to the users choices unless it is absolutely the best route to take
 - Make the wizard ask if the user wants to recreate their review questions if they updated their notes after they were generated
 - Add bfcache handle to wizard
+- Set the width of the day plan viewer have a constant height
 - Make the placeholder say "Do you already have a rough idea of a plan?"
 - Make the wizard review questions heading scroll area auto scroll to current question and not have the scrollar visible
 - Make the task guide accordion automatically open up the next one on complete
@@ -36,6 +39,7 @@
 - Don't share the choiceNum with the AI when giving review questions to the schedule planner AI.
 - Failsafe/Optimization: Add a safety net on tool result lengths (a user could make their schedule REALLY big )
 - Combine the missing content check form generate services
+- Fix Bug: Weird chat-interface animation while switching from mobile-layout to desktop and back
 - Fix Bug: The scroll arrow in the chat interface appears when the thinking is past the height but is collapsed
 - Split the schedule planning system prompt for multiple plans (such as study, fitness, or trip)
   - {average of all numbers below total average}-{average of all numbers above total average}
