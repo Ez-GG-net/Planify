@@ -19,7 +19,7 @@ import type {
 import { AIChat } from "./ai-chat"
 import { AIOpenLaunchers } from "./ai-open-lips"
 
-const DEFAULT_WIDTH = 550
+const DEFAULT_WIDTH = 680
 const MIN_WIDTH = 320
 const MAX_WIDTH = 1000
 
