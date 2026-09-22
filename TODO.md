@@ -39,6 +39,7 @@
 - Don't share the choiceNum with the AI when giving review questions to the schedule planner AI.
 - Failsafe/Optimization: Add a safety net on tool result lengths (a user could make their schedule REALLY big )
 - Combine the missing content check form generate services
+- Fix Bug: chat-interface overflowing screen when the user's screen becomes smaller than the width of the chat interface
 - Fix Bug: Weird chat-interface animation while switching from mobile-layout to desktop and back
 - Fix Bug: The scroll arrow in the chat interface appears when the thinking is past the height but is collapsed
 - Split the schedule planning system prompt for multiple plans (such as study, fitness, or trip)
