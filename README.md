@@ -4,7 +4,8 @@ Init:
 - `pnpm build`
 - `pnpm --filter @planify/api db:generate`
 - `pnpm --filter @planify/api db:migrate`
-Run these in seperate terminals
+
+Run these in seperate terminals:
 - `pnpm dev:web`
 - `pnpm dev:api`
 - `docker compose up`
