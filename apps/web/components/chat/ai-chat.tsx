@@ -616,7 +616,7 @@ export function AIChat({
   const lastMessage = messages.at(-1);
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden py-0">
+    <Card className="flex h-full flex-col overflow-hidden bg-transparent py-0">
       <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center gap-2 pt-4 text-16">
           <Bot className="size-5" />

@@ -207,8 +207,10 @@ export function AIChatPanel({
         aria-label="AI chat"
         inert={!isOpen}
         className={cn(
-          "fixed z-40 flex flex-col bg-background shadow-2xl",
-          "inset-x-0 bottom-0 h-3/4 rounded-t-2xl",
+          "fixed z-40 flex flex-col",
+"inset-x-0 bottom-0 h-3/4 rounded-t-2xl",
+"bg-background/60 backdrop-blur-md backdrop-saturate-150",
+"border border-white/10 shadow-2xl",
           "md:inset-x-auto md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-(--chat-width) md:rounded-none",
           isOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
