@@ -40,6 +40,7 @@ import {
 } from "@/lib/chat/chat-storage";
 import AIChatMessageBubble from "./ai-chat-bubble";
 import { AIChatRuntimeProvider, type AIChatRuntimeValue } from "./chat-runtime";
+import { TokenUsageBar } from "./ai-token-usage-bar";
 
 export interface AIChatTypeInfo {
   title: string;
@@ -751,21 +752,7 @@ export function AIChat({
             </p>
 
             {tokenLimit != null && (
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width]"
-                    style={{
-                      width: `${Math.min(100, (tokensUsed / tokenLimit) * 100)}%`,
-                    }}
-                  />
-                </div>
-
-                <span className="whitespace-nowrap text-xs text-muted-foreground">
-                  {(tokensUsed / 1000).toFixed(1)}k /{" "}
-                  {(tokenLimit / 1000).toFixed(1)}k tokens used
-                </span>
-              </div>
+              <TokenUsageBar used={tokensUsed} limit={tokenLimit} />
             )}
           </div>
         </form>
