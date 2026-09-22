@@ -70,7 +70,7 @@ const CHAT_TYPE_INFO_BY_ENTITY: Record<AIChatEntityType, AIChatTypeInfo> = {
       "Ask a question or tell me how you'd like to change your tasks.",
   },
   "pre-task": {
-    title: "Questions about your preparation",
+    title: "Questions about your pre-tasks",
     description: "Ask questions or request changes to your pre-tasks.",
     placeholder: "Ask about your pre-tasks or request a change...",
     emptyTitle: "Need help with your preparation?",
@@ -617,8 +617,8 @@ export function AIChat({
   return (
     <Card className="flex h-full flex-col overflow-hidden py-0">
       <CardHeader className="shrink-0 border-b">
-        <CardTitle className="flex items-center gap-2 pt-4 text-base">
-          <Bot className="size-4" />
+        <CardTitle className="flex items-center gap-2 pt-4 text-16">
+          <Bot className="size-5" />
           {chatTypeInfo.title}
 
           <span className="ml-auto flex items-center gap-1">
@@ -723,7 +723,7 @@ export function AIChat({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder={chatTypeInfo.placeholder}
-              className="max-h-32 min-h-11 resize-none"
+              className="max-h-32 min-h-10 resize-none"
               rows={1}
               disabled={isSending}
               onKeyDown={(event) => {
@@ -737,11 +737,11 @@ export function AIChat({
 
             <Button
               type="submit"
-              size="icon"
+              className="size-10"
               disabled={!input.trim() || isSending}
               aria-label="Send message"
             >
-              <Send className="size-4" />
+              <Send className="size-5" />
             </Button>
           </div>
 
