@@ -49,7 +49,7 @@ export function ScheduleProvider({
   // Redirect unauthenticated users to sign-in.
   useEffect(() => {
     if (!isPending && !session) {
-      router.replace("/sign-in?callbackPath=" + encodeURIComponent(pathname))
+      router.push("/sign-in?callbackPath=" + encodeURIComponent(pathname))
     }
   }, [isPending, session, router, pathname])
 
