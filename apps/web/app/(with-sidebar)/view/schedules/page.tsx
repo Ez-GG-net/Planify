@@ -7,6 +7,7 @@ import { SchedulePlan } from "@planify/types";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import ScheduleTimeline from "@/components/schedule/timeline/desktop.schedule-timeline";
 import ScheduleList from "@/components/schedule/timeline/mobile.schedule-list";
+import { useSession } from "@/lib/auth-client";
 
 const DESKTOP_BREAKPOINT = 1545;
 
@@ -15,8 +16,10 @@ export default function ScheduleDashboardPage() {
   // localStorage (which only exists in the browser).
   const [hydrated, setHydrated] = useState(false);
   const [schedules, setSchedules] = useState<SchedulePlan[]>([]);
+  const { data: session, isPending } = useSession()
 
   useEffect(() => {
+    if (isPending || !session) return;
     let cancelled = false;
 
     async function loadSchedules() {
@@ -33,7 +36,7 @@ export default function ScheduleDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isPending, session]);
 
   // Re-load after bfcache restore (back/forward button) — the [] effect
   // above does not re-fire when the browser paints from cache.
