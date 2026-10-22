@@ -1,17 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarPlus, LayoutDashboard } from "lucide-react";
+import { ArrowRight, CalendarPlus, ChevronDownIcon, LayoutDashboard } from "lucide-react";
 
 import PlanifyLogo from "@/components/planify-logo";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLinkItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 
@@ -51,31 +56,38 @@ export function SiteHeader() {
         <NavigationMenu className="hidden max-w-none flex-1 justify-start md:flex">
           <NavigationMenuList className="justify-start">
             <NavigationMenuItem>
-              <NavigationMenuTrigger>Product</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-64 gap-1 sm:grid-rows-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(navigationMenuTriggerStyle(), "group", "gap-0")}
+                >
+                  Product
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="relative top-px ml-1 size-3 transition duration-300 group-data-popup-open:rotate-180"
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-auto min-w-56">
                   {productLinks.map(({ title, description, href, Icon }) => (
-                    <li key={href}>
-                      <NavigationMenuLink
-                        href={href}
-                        render={<Link href={href} />}
-                        closeOnClick
-                        className="items-start gap-2.5"
-                      >
-                        <Icon
-                          aria-hidden
-                          className="mt-0.5 size-4 shrink-0 text-primary"
-                        />
-                        <span className="grid gap-0.5">
-                          <span className="font-medium text-foreground">
-                            {title}
-                          </span>
+                    <DropdownMenuLinkItem
+                      key={href}
+                      href={href}
+                      render={<Link href={href} />}
+                      closeOnClick
+                      className="gap-2.5 py-1.5"
+                    >
+                      <Icon
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground"
+                      />
+                      <span className="grid gap-0.5">
+                        <span className="font-medium text-foreground">
+                          {title}
                         </span>
-                      </NavigationMenuLink>
-                    </li>
+                      </span>
+                    </DropdownMenuLinkItem>
                   ))}
-                </ul>
-              </NavigationMenuContent>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </NavigationMenuItem>
 
             <NavigationMenuItem>
@@ -104,7 +116,7 @@ export function SiteHeader() {
             href="/view/schedules"
             className={cn(buttonVariants({ size: "lg" }), "px-4")}
           >
-            Try it
+            Start planning <ArrowRight aria-hidden className="size-4" />
           </Link>
         </div>
       </div>

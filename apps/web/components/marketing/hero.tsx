@@ -19,7 +19,7 @@ export function Hero() {
         Planify turns your ambitious goals into small daily tasks, helping you stay on track and make consistent progress toward what matters most.
       </p>
       <Link
-        href="/new/schedule"
+        href="/view/schedule"
         className={cn(buttonVariants({ size: "lg" }), "mt-8 h-11 gap-2 px-6 text-lg")}
       >
         Start planning
