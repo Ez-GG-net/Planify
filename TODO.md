@@ -1,6 +1,5 @@
 # Planify TODOs 
 ### (Probably arranged in order of importance)
-- Add a home page
 - Add a 404 page
 - Chat interface: Add the users character count to the quota usage 
 - Give the task guide AI access to previous tasks (just the title) 
