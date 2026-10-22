@@ -2,9 +2,6 @@
 ### (Probably arranged in order of importance)
 - Add a home page
 - Add a 404 page
-- Make the AI chat interface collapsible and openable with a button (swipe from bottom on mobile)
-- Add a limit for canceling the amount of times a user can cancel a generation before it starts actually counting toward their quota
-  - Prevents users from wasting system resources
 - Chat interface: Add the users character count to the quota usage 
 - Give the task guide AI access to previous tasks (just the title) 
 - Add a button to stop a chat response
@@ -32,20 +29,26 @@
 - Add bfcache handle to wizard
 - Set the width of the day plan viewer have a constant height
 - Make the placeholder say "Do you already have a rough idea of a plan?"
+- Add a loading bar at the top of the screen on page load
 - Make the wizard review questions heading scroll area auto scroll to current question and not have the scrollar visible
 - Make the task guide accordion automatically open up the next one on complete
 - Make the wizard initially retrieve quota once and update remaining quota (for review questions and schedule) on the client. Initially meaning on every page refresh. 
 - Maybe, make the schedule task title be shorter as a list, but show a detailed title when in the task guide page
 - Don't share the choiceNum with the AI when giving review questions to the schedule planner AI.
 - Failsafe/Optimization: Add a safety net on tool result lengths (a user could make their schedule REALLY big )
+- Fix day view UI hierachy (every day has equal importance but obviously the most recent day with task has most) 
+- Add account personalization (name, profile picture)
 - Combine the missing content check form generate services
 - Fix Bug: chat-interface overflowing screen when the user's screen becomes smaller than the width of the chat interface
 - Fix Bug: Weird chat-interface animation while switching from mobile-layout to desktop and back
 - Fix Bug: The scroll arrow in the chat interface appears when the thinking is past the height but is collapsed
 - Split the schedule planning system prompt for multiple plans (such as study, fitness, or trip)
   - {average of all numbers below total average}-{average of all numbers above total average}
+- Change every *ID to its own type
 - Wizard: Add an auto-next functionality when the user clicks enter in a field
 - While the AI is loading (not thinking or generating), it should say funny things that a normal human would do to avoid answering.
+- Automove the user to their schedule plans if their current month has none
+- Add a move all tool to the AI to move all the dates in a plan forward or backwards in time  
   Examples:
   - Looking online for the best methods
   - Brewing a new cup of coffee
