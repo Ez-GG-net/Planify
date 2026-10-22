@@ -176,11 +176,43 @@ export const quotaUsage = pgTable(
   ],
 );
 
+/**
+ * Per-user daily cancellation tracking. Each row represents one generation
+ * type for one calendar day (UTC). `used` increments on a cancelled
+ * generation; the first `DAILY_CANCEL_LIMIT` cancels per day are free, any
+ * beyond that are charged against the user's monthly quota.
+ */
+export const generationCancellation = pgTable(
+  "generation_cancellation",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    generationType: text("generation_type").notNull(),
+    periodStart: timestamp("period_start").notNull(),
+    used: integer("used").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("generation_cancellation_user_type_period_idx").on(
+      table.userId,
+      table.generationType,
+      table.periodStart,
+    ),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   schedules: many(schedule),
   quotaUsage: many(quotaUsage),
+  generationCancellations: many(generationCancellation),
 }));
 
 export const scheduleRelations = relations(schedule, ({ one }) => ({

@@ -32,10 +32,12 @@ function WizardLoading({
   title,
   estimatedTime,
   cancelFn,
+  cancellationRemaining,
 }: {
   title: string
   estimatedTime: string
   cancelFn: () => void
+  cancellationRemaining?: number
 }) {
   const [isAlmostDone, setIsAlmostDone] = React.useState(false)
   const [messageIndex, setMessageIndex] = React.useState(0)
@@ -88,6 +90,13 @@ function WizardLoading({
 <Button variant="link" onClick={cancelFn}>
   Cancel Generation
 </Button>
+{cancellationRemaining != null && (
+  <p className="text-xs text-muted-foreground">
+    {cancellationRemaining > 0
+      ? `Free cancellations left today: ${cancellationRemaining}`
+      : "Cancelling now counts toward your monthly quota"}
+  </p>
+)}
     </div>
   )
 }

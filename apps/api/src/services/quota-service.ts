@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, lte, sql } from "drizzle-orm";
 import { generateRandomIDv1 } from "@planify/types";
 
 import { db } from "../db";
@@ -69,8 +69,8 @@ export const quota = {
   },
 
   /**
-   * Reserve `amount` units for a request. Returns `true` if reserved
-   * successfully, `false` if the monthly allowance is insufficient.
+   * Atomically reserve `amount` units for a request. Returns `true` if
+   * reserved successfully, `false` if the monthly allowance is insufficient.
    */
   async reserve(
     userId: string,
@@ -78,19 +78,30 @@ export const quota = {
     amount: number,
   ): Promise<boolean> {
     const limit = QUOTA_LIMITS[type].monthly;
-    const row = await getOrCreateRow(userId, type);
+    const periodStart = currentPeriodStart();
+    await getOrCreateRow(userId, type);
 
-    if (row.used + amount > limit) {
+    const [row] = await db
+      .update(quotaUsage)
+      .set({ used: sql`${quotaUsage.used} + ${amount}` })
+      .where(
+        and(
+          eq(quotaUsage.userId, userId),
+          eq(quotaUsage.quotaType, type),
+          eq(quotaUsage.periodStart, periodStart),
+          lte(sql`${quotaUsage.used} + ${amount}`, limit),
+        ),
+      )
+      .returning({ id: quotaUsage.id, used: quotaUsage.used });
+
+    if (!row) {
       return false;
     }
 
-    await db
-      .update(quotaUsage)
-      .set({ used: row.used + amount })
-      .where(eq(quotaUsage.id, row.id));
-    
     //!TEMPORARY
-    console.log(`[quota] Reserved ${amount} units for user ${userId} (type: ${type}). New usage: ${row.used + amount}/${limit}`);
+    console.log(
+      `[quota] Reserved ${amount} units for user ${userId} (type: ${type}). New usage: ${row.used}/${limit}`,
+    );
 
     return true;
   },

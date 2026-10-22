@@ -1,4 +1,4 @@
-import { ActionID, IDv1, toolCallID } from "./id";
+import { ActionID, IDv1, toolCallID, GenerationCancelID } from "./id";
 
 function generateUUIDv7() {
   const fromBytes = (buf: Uint8Array) => {
@@ -32,9 +32,9 @@ function generateUUIDv7() {
   return fromBytes(bytes);
 }
 //has a very slight bias because 256/62 does not divide good (modulo)
-function generaterandomAlphanumericString(length: number) {
+function generateRandomAlphanumericString(length: number) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; //62 chars
-  const buffer = new Uint8Array(length);
+  const buffer = new Uint8Array(length); //0-255 each (256 possibilities)
 
   // Fill the entire array with random bytes at once
   crypto.getRandomValues(buffer);
@@ -55,10 +55,14 @@ export function generateRandomIDv1() {
     return randomId;
 }
 export function generateRandomToolCallID() {
-  const randomId: toolCallID = generaterandomAlphanumericString(6)
+  const randomId: toolCallID = generateRandomAlphanumericString(6)
   return randomId
 }
 export function generateRandomActionID() {
-  const randomId: ActionID = generaterandomAlphanumericString(6)
+  const randomId: ActionID = generateRandomAlphanumericString(6)
   return randomId
+}
+export function generateRandomGenerationCancelID() {
+  const randomId: GenerationCancelID = generateRandomAlphanumericString(6);
+  return randomId;
 }

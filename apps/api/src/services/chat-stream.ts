@@ -213,7 +213,7 @@ export function chatStream(
               }),
             ),
           );
-          // Stop feeding the model; money spent past this point is wasted.
+          // Stop feeding the model; tokens spent past this point is wasted.
           abortController.abort();
           throw new UsageLimitReachedError("Chat token usage limit reached");
         }
@@ -374,6 +374,13 @@ export function chatStream(
         emit({ type: "done" });
         controller.close();
       } catch (error) {
+        //ignore cancel abort errors
+        if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("[AI chat stream] Stream aborted by client");
+          controller.close();
+          return;
+        }
+
         console.error("[AI chat stream] Error:", error);
 
         //Note: does not count error events towards the token limit

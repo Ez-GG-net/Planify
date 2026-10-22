@@ -40,7 +40,8 @@ import {
 } from "@/lib/wizard/wizard-draft"
 import { useRouter } from "next/navigation"
 import { fetchQuotaUsage, type QuotaUsage } from "@/lib/api/quota"
-import type { ReviewQuestion, ReviewAnswer } from "@planify/types"
+import { fetchCancellationUsage } from "@/lib/api/rate-limits"
+import type { ReviewQuestion, ReviewAnswer, CancellationUsageResponse } from "@planify/types"
 import { QuotaHint } from "./quotaHint"
 import { Separator } from "@/components/ui/separator"
 
@@ -69,6 +70,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
 
   const [wizard, setWizard] = useState<WizardScheduleState>(initialWizardState)
   const [quota, setQuota] = useState<QuotaUsage | null>(null)
+  const [cancelAllowance, setCancelAllowance] = useState<CancellationUsageResponse | null>(null)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewErrorCode, setReviewErrorCode] = useState<string | null>(null)
 
@@ -122,9 +124,23 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     return () => { cancelled = true }
   }, [])
 
+  // Fetch today's free cancellation allowance on mount.
+  useEffect(() => {
+    let cancelled = false
+    fetchCancellationUsage().then((data) => {
+      if (!cancelled) setCancelAllowance(data)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   /** Re-fetch quota after a mutation consumes quota. */
   async function refreshQuota() {
     setQuota(await fetchQuotaUsage())
+  }
+
+  /** Re-fetch the daily cancellation allowance after a cancel consumes it. */
+  async function refreshCancellations() {
+    setCancelAllowance(await fetchCancellationUsage())
   }
 
   const {
@@ -135,12 +151,23 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     reviewQuestions,
   } = wizard
 
+  // Calculate if the user has exhausted their monthly quota
   const scheduleQuotaExhausted =
     quota != null &&
     (quota.schedule_plan?.used ?? 0) >= (quota.schedule_plan?.limit ?? Infinity)
   const reviewQuotaExhausted =
     quota != null &&
     (quota.review_questions?.used ?? 0) >= (quota.review_questions?.limit ?? Infinity)
+
+  // Calculate how many free cancels remain for each generation type (in the wizard)
+  const reviewCancelsRemaining =
+    cancelAllowance?.review_questions != null
+      ? cancelAllowance.review_questions.limit - cancelAllowance.review_questions.used
+      : undefined
+  const scheduleCancelsRemaining =
+    cancelAllowance?.schedule_plan != null
+      ? cancelAllowance.schedule_plan.limit - cancelAllowance.schedule_plan.used
+      : undefined
 
   function updateSchedule(updates: Partial<WizardSchedule>) {
     setWizard((prev) => ({
@@ -192,7 +219,10 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     }))
 
     try {
-      const generatedSchedulePlan = await generateSchedulePlan(schedule)
+      const controller = new AbortController()
+      scheduleGenerationController.current = controller
+
+      const generatedSchedulePlan = await generateSchedulePlan(schedule, controller.signal)
 
 
       setWizard((prev) => ({
@@ -214,6 +244,8 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
   function cancelScheduleGeneration() {
     scheduleGenerationController.current?.abort()
     scheduleGenerationController.current = null
+
+    void refreshCancellations()
 
     setWizard((prev) => ({
       ...prev,
@@ -293,6 +325,8 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
     reviewGenerationController.current?.abort()
 
     reviewGenerationController.current = null
+
+    void refreshCancellations()
 
     // Restore previous questions if this was a regeneration attempt.
     if (savedReviewRef.current) {
@@ -404,6 +438,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             cancelFn={cancelReviewGeneration}
             title="review questions"
             estimatedTime="30-60 seconds"
+            cancellationRemaining={reviewCancelsRemaining}
           />
         )
       }
@@ -530,6 +565,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             cancelFn={cancelScheduleGeneration}
             title="schedule"
             estimatedTime="1-2 minutes"
+            cancellationRemaining={scheduleCancelsRemaining}
           />
         )
       }

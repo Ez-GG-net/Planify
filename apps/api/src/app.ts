@@ -6,6 +6,7 @@ import { handleApiError } from "./errors/handle-api-error";
 import { auth } from "./lib/auth";
 import { generateRoutes } from "./routes/generate";
 import { quotaRoutes } from "./routes/quota";
+import { rateLimitRoutes } from "./routes/rate-limits";
 import { scheduleRoutes } from "./routes/schedules";
 import { userRoutes } from "./routes/users";
 
@@ -34,6 +35,7 @@ export const app = new Hono()
   .route("/schedules", scheduleRoutes) // gets all schedules on /, combines with an ID to CRUD a single plan
   .route("/generate", generateRoutes) // generates content using AI (e.g. schedules, chat)
   .route("/quota", quotaRoutes) // gets quota usage and remaining allowance
+  .route("/rate-limits", rateLimitRoutes) // daily cancellation rate limits
   .get("/health", async (c) => {
     const dbOk = await checkDatabase();
     if (!dbOk) {

@@ -9,3 +9,4 @@ export const IDv1Schema = z.string().regex(
 
 export const ToolCallIDSchema = z.string().length(6);
 export const ActionIDSchema = z.string().length(6);  
+export const GenerationCancelIDSchema = z.string().length(6);

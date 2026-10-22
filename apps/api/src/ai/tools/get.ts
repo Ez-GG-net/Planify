@@ -61,7 +61,7 @@ export async function getFilteredTasks(
   return scopedTasks(context).filter((task) => {
     if (startTime && task.startTime !== startTime) return false
     if (date && task.date !== date) return false
-    if (title && task.title !== title) return false
+    if (title && !task.title.includes(title)) return false
     if (durationMinutes && task.estimatedDuration !== durationMinutes) return false
     return true
   })

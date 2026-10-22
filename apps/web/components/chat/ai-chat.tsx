@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   RotateCw,
   Send,
+  Square,
   Trash2,
   TriangleAlert,
   User,
@@ -152,6 +153,8 @@ export function AIChat({
   const messageListRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const activeAssistantMessageIdRef = useRef<string | null>(null);
+  /** In-flight AbortController so the Stop button can cut the SSE stream. */
+  const sendControllerRef = useRef<AbortController | null>(null);
 
   const chatTypeInfo = CHAT_TYPE_INFO_BY_ENTITY[entityType];
   /*
@@ -216,7 +219,7 @@ export function AIChat({
    * --------------------------------------------------------------------------
    */
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, signal?: AbortSignal) => {
     const userMessage: AIChatUserMessage = {
       id: generateRandomIDv1(),
       role: "user",
@@ -296,6 +299,7 @@ export function AIChat({
             });
           },
         },
+        signal,
       );
       updateAssistantMessage((message) => ({
         ...message,
@@ -336,12 +340,21 @@ export function AIChat({
     setIsFollowingStream(true);
     setIsSending(true);
 
+    const controller = new AbortController();
+    sendControllerRef.current = controller;
+
     try {
-      await sendMessage(content);
+      await sendMessage(content, controller.signal);
     } catch (error) {
+      // Swallow the abort raised by the Stop button — it's not a send failure.
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
       console.error("Failed to send chat message:", error);
       setFailedRequest(true);
     } finally {
+      sendControllerRef.current = null;
       setIsSending(false);
     }
   };
@@ -736,14 +749,26 @@ export function AIChat({
               }}
             />
 
-            <Button
-              type="submit"
-              className="size-10"
-              disabled={!input.trim() || isSending}
-              aria-label="Send message"
-            >
-              <Send className="size-5" />
-            </Button>
+            {isSending ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="size-10"
+                onClick={() => sendControllerRef.current?.abort()}
+                aria-label="Stop generating"
+              >
+                <Square className="size-5 fill-current" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                className="size-10"
+                disabled={!input.trim()}
+                aria-label="Send message"
+              >
+                <Send className="size-5" />
+              </Button>
+            )}
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-3">

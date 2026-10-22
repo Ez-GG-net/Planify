@@ -14,6 +14,7 @@ export async function generateAIChatResponse(
   message: AIChatUserMessage,
   context: AIChatUserMessageContext,
   callbacks: AIChatStreamCallbacks,
+  signal?: AbortSignal,
 ): Promise<AIChatMessage> {
   if (!AIChatUserMessageSchema.safeParse(message).success) {
     throw new Error("Invalid message")
@@ -35,11 +36,14 @@ export async function generateAIChatResponse(
       context,
     }),
     fallbackErrorMessage: "Failed to generate AI response",
+    signal,
   })
 
   if (!response.body) {
     throw new Error("Response body is missing")
   }
+
+  signal?.throwIfAborted()
 
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
@@ -48,6 +52,8 @@ export async function generateAIChatResponse(
   let responseContent = ""
 
   while (true) {
+    signal?.throwIfAborted()
+
     const { value, done } = await reader.read()
 
     if (done) {
