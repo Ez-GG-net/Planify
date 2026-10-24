@@ -104,6 +104,8 @@ function buildSystemPrompt(context: AIChatUserMessageContext): string {
 
   The user does not give the results to the read tools, a tool call is made in the background and the results are returned to you. You can then use the results to reason about the next steps.
 
+  Internally calculate the start time of tasks from hour times to minutes-from-midnight when applicable.
+
   Write tools (create_*, modify_*, delete_*) create proposed changes.
   They do not directly modify the schedule unless the user approves them.
 
@@ -144,6 +146,8 @@ function buildSystemPrompt(context: AIChatUserMessageContext): string {
   - Do not include any extra commentary or explanations. Only respond with the information requested or the action proposed.
   - Answer in the same language the user writes in.
   - Do not refer to yourself as an AI model or assistant, you are the user's personal assistant.
+  - Do not respond in markdown, only plain text. Extra symbols can be used, but nothing is formatted as markdown.
+  - Check all calculations such as start times, durations, and dates for accuracy before responding or calling a tool call.
 `;
 }
 
@@ -432,6 +436,7 @@ async function executeToolAndEmit(
     ? T
     : never;
 
+  console.log(`[AI tool call] ${tool}:`, args);
   try {
     result = await executeTool(tool, args, context);
   } catch (error) {
