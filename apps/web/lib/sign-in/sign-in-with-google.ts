@@ -10,7 +10,7 @@ function getSafeCallbackURL(value: string | undefined | null): string {
 }
 export async function signInWithGoogle({ onError, onStart }: { onError?: (error: string) => void; onStart?: () => void }) {
     onStart?.();
-    const callbackPath = getSafeCallbackURL(decodeURIComponent(new URLSearchParams(window.location.search).get("callbackPath") ?? "/")); // Later, maybe change this parameter to a 2 letter code (e.g. "cp") to save network bandwidth
+    const callbackPath = getSafeCallbackURL(decodeURIComponent(new URLSearchParams(window.location.search).get("callbackPath") ?? "/view/schedules")); // Later, maybe change this parameter to a 2 letter code (e.g. "cp") to save network bandwidth
     await authClient.signIn
       .social({ provider: "google", callbackURL: `${window.location.origin}/${callbackPath}` })
       .then(({ error }) => {
