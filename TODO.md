@@ -1,9 +1,7 @@
 # Planify TODOs 
 ### (Probably arranged in order of importance)
-- Add a 404 page
 - Chat interface: Add the users character count to the quota usage 
 - Give the task guide AI access to previous tasks (just the title) 
-- Add a button to stop a chat response
 - Update token limit on error or per message quota exceeded for chat interface
 - Optimization: Truncate the most recent round's reasoning (e.g. ~1-2k chars)
 - Optimization: Remove unnecessary info from previous chat responses (before the last user request)
