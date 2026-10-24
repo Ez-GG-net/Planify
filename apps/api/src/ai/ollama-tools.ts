@@ -266,7 +266,7 @@ export const OLLAMA_TOOLS: OllamaToolFunction[] = [
     type: "function",
     function: {
       name: "get_filtered_tasks",
-      description: "Search the main schedule's tasks by optional filters.",
+      description: "Search the main schedule's tasks by filters.",
       parameters: getFilteredParameters,
     },
   },
@@ -275,7 +275,7 @@ export const OLLAMA_TOOLS: OllamaToolFunction[] = [
     function: {
       name: "get_filtered_pre_tasks",
       description:
-        "Search the preparation list's pre-tasks by optional filters.",
+        "Search the preparation list's pre-tasks by filters.",
       parameters: getFilteredParameters,
     },
   },
