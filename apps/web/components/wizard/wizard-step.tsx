@@ -406,6 +406,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
               />
             </FieldContent>
 
+            {/*
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
               <span className="text-sm tracking-wider text-muted-foreground uppercase">
@@ -421,12 +422,14 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             <FieldContent>
               <FileUpload aria-labelledby="wizard-upload-label" />
             </FieldContent>
+            */}
 
             <FieldDescription>
               Share any important information, constraints, preferences, or even
               anything that the AI will consider when creating your plan.
             </FieldDescription>
           </Field>
+            
         ),
       }
       break
@@ -492,7 +495,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
       step = {
         title: "Review Questions",
         description:
-          "Answer some questions to create exactly the plan your looking for",
+          "Answer some questions to create exactly the plan you're looking for",
         content: (
           <WizardReviewStep
             reviewQuestions={reviewQuestions}
