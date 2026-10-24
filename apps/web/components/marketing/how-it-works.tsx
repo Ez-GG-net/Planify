@@ -59,7 +59,7 @@ export function HowItWorks() {
 
       <div className="mt-12 grid gap-4 md:grid-cols-3 md:gap-5">
         {steps.map(({ number, title, description, Icon }) => (
-          <Card key={number} className="transition-colors hover:bg-muted/40 bg-bg">
+          <Card key={number} className="transition-colors bg-bg">
             <CardHeader>
               <span className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon aria-hidden className="size-5" strokeWidth={1.9} />

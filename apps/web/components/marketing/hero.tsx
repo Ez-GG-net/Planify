@@ -16,7 +16,7 @@ export function Hero() {
         Turn Big Goals into Small Steps.
       </h1>
       <p className="mt-6 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-        Planify turns your ambitious goals into small daily tasks, helping you stay on track and make consistent progress toward what matters most.
+        Turn your big goals into small, achievable daily steps. Planify helps you break down ambitious plans into manageable tasks so you can make steady progress every day.
       </p>
       <Link
         href="/view/schedule"
