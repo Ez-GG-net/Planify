@@ -22,13 +22,11 @@ import { cn } from "@/lib/utils";
 const productLinks = [
   {
     title: "Create schedule",
-    description: "Turn a goal into a day-by-day plan.",
     href: "/new/schedule",
     Icon: CalendarPlus,
   },
   {
     title: "Timeline",
-    description: "Review every plan you have created.",
     href: "/view/schedules",
     Icon: LayoutDashboard,
   },
@@ -66,7 +64,7 @@ export function SiteHeader() {
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-auto min-w-56">
-                  {productLinks.map(({ title, description, href, Icon }) => (
+                  {productLinks.map(({ title, href, Icon }) => (
                     <DropdownMenuLinkItem
                       key={href}
                       href={href}
