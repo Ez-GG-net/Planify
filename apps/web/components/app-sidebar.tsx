@@ -2,6 +2,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Calendar, Pencil, Plus, SquarePen, Trash2 } from "lucide-react"
+import Link from "next/link"
 import {
   Sidebar,
   SidebarHeader,
@@ -88,12 +89,16 @@ export function AppSidebar({
       className={cn(revealed && "shadow-2xl")}
     >
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <Link
+          href="/"
+          aria-label="Planify home"
+          className="flex items-center gap-2 px-2 py-1.5"
+        >
           <Image src="/logo.png" alt="Logo" width={24} height={24} />
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
             Planify
           </span>
-        </div>
+        </Link>
         <SidebarSeparator />
         <Button
           variant="ghost"

@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, CalendarPlus, ChevronDownIcon, LayoutDashboard } from "lucide-react";
-
-import PlanifyLogo from "@/components/planify-logo";
+import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -49,7 +48,7 @@ export function SiteHeader() {
           aria-label="Planify home"
           className="flex shrink-0 items-center gap-2.5"
         >
-          <PlanifyLogo />
+          <Image src="/logo.png" alt="Logo" width={24} height={24} />
           <span className="text-lg font-semibold tracking-tight">Planify</span>
         </Link>
 
