@@ -105,10 +105,7 @@ function SiteHeader({ pinned }: { pinned: boolean }) {
 
   return (
     <header
-      className={cn(
-        "flex h-12 shrink-0 items-center border-b bg-background transition-[padding] duration-200 ease-in-out",
-        !isMobile && pinned ? "pl-[calc(var(--sidebar-width)+0.75rem)]" : "pl-3"
-      )}
+      className="flex h-12 shrink-0 items-center border-b bg-background transition-[padding] duration-200 ease-in-out pl-3"
     >
       <Button
         variant="ghost"
