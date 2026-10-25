@@ -442,6 +442,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             title="review questions"
             estimatedTime="30-60 seconds"
             cancellationRemaining={reviewCancelsRemaining}
+            type="questions"
           />
         )
       }
@@ -569,6 +570,7 @@ export default function WizardStep({ initStepNum }: { initStepNum: number }) {
             title="schedule"
             estimatedTime="1-2 minutes"
             cancellationRemaining={scheduleCancelsRemaining}
+            type="schedule"
           />
         )
       }

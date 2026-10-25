@@ -26,6 +26,24 @@ const ALMOST_GENERATING_QUESTIONS_LOADING_TEXT = [
   "Nearly done...",
 ]
 
+const GENERATING_SCHEDULE_LOADING_TEXT = [
+  "Creating your schedule...",
+  "Researching the best tasks...",
+  "Thinking about the best order for your tasks...",
+  "Accounting for your preferences and constraints...",
+  "Refining your schedule...",
+  "Finalizing your schedule...",
+]
+
+const ALMOST_GENERATING_SCHEDULE_LOADING_TEXT = [
+  "Finalizing your schedule...",
+  "Finishing up...",
+  "Making sure everything is in order...",
+  "Checking for any last-minute adjustments...",
+  "Double-checking for errors...",
+  "Nearly done...",
+]
+
 
 
 function WizardLoading({
@@ -33,19 +51,25 @@ function WizardLoading({
   estimatedTime,
   cancelFn,
   cancellationRemaining,
+  type,
 }: {
   title: string
   estimatedTime: string
   cancelFn: () => void
   cancellationRemaining?: number
+  type: "questions" | "schedule"
 }) {
   const [isAlmostDone, setIsAlmostDone] = React.useState(false)
   const [messageIndex, setMessageIndex] = React.useState(0)
   const [fade, setFade] = React.useState(true)
 
   const messages = isAlmostDone
-    ? ALMOST_GENERATING_QUESTIONS_LOADING_TEXT
-    : GENERATING_QUESTIONS_LOADING_TEXT
+    ? type === "questions"
+      ? ALMOST_GENERATING_QUESTIONS_LOADING_TEXT
+      : ALMOST_GENERATING_SCHEDULE_LOADING_TEXT
+    : type === "questions"
+      ? GENERATING_QUESTIONS_LOADING_TEXT
+      : GENERATING_SCHEDULE_LOADING_TEXT
 
   React.useEffect(() => {
     const timeout = window.setTimeout(() => {
