@@ -4,6 +4,7 @@ import { differenceInCalendarDays, endOfMonth, startOfMonth } from "date-fns"
 import { uuidToColor } from "@/lib/uuid-to-color"
 import { SchedulePlan } from "@planify/types"
 import { Ellipsis } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface ScheduleRowProps {
   schedule?: SchedulePlan
@@ -21,6 +22,7 @@ export default function ScheduleRow({
   empty = false,
   height,
 }: ScheduleRowProps) {
+  const router = useRouter()
   const dayGridCells = Array.from({ length: daysInMonth }).map((_, index) => (
     <div
       key={index}
@@ -87,6 +89,9 @@ export default function ScheduleRow({
             gridColumn: `${startOffset + 1} / span ${duration}`,
             gridRow: 1,
             backgroundColor: color,
+          }}
+          onClick={() => {
+            router.push(`/view/schedule/${schedule.id}`)
           }}
         >
           {startsBeforeMonth && (
