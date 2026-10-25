@@ -629,7 +629,7 @@ Each task must include:
 - "id": a unique ID describing the task, written in kebab-case
 - "title`: a short, concise title
 - "date": an ISO date
-- "startTime": the time the task will start, written in minutes since midnight
+- "startTime": the time the task will start, written in minutes since midnight. Each hour is 60 minutes (Ex. 12:00 PM -> 720 minutes).
 - "estimatedDuration": the estimated duration of each task, written in minutes
 
 Include `details` when important information is needed by the task-guide AI.

@@ -104,7 +104,7 @@ function buildSystemPrompt(context: AIChatUserMessageContext): string {
 
   The user does not give the results to the read tools, a tool call is made in the background and the results are returned to you. You can then use the results to reason about the next steps.
 
-  Internally calculate the start time of tasks from hour times to minutes-from-midnight when applicable.
+  Internally calculate the start time of tasks from hour times to minutes-from-midnight when applicable. Each hour is 60 minutes (Ex. 12:00 PM -> 720 minutes).
 
   Write tools (create_*, modify_*, delete_*) create proposed changes.
   They do not directly modify the schedule unless the user approves them.
