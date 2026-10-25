@@ -94,7 +94,7 @@ export function AppSidebar({
           aria-label="Planify home"
           className="flex items-center gap-2 px-2 py-1.5"
         >
-          <Image src="/logo.png" alt="Logo" width={28} height={28} />
+          <Image src="/logo.svg" alt="Logo" width={28} height={28} />
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
             Planify
           </span>
